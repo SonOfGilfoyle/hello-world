@@ -7,6 +7,10 @@ import qrcode from "./vendor/qrcode.js";
 
 const MAX_NAME = 24;
 
+// Bei jedem Deployment sichtbar im Start-Screen — so ist sofort erkennbar,
+// ob Browser/CDN noch einen alten Stand ausliefern.
+const APP_VERSION = "v1.1 · 2026-07-04";
+
 // ------------------------------------------------------------ Präferenzen
 
 const prefs = {
@@ -170,6 +174,7 @@ function viewStart() {
         <button class="btn" type="submit" ${state.busy ? "disabled" : ""}>Beitreten</button>
       </form>
     `}
+    <p class="version">${esc(APP_VERSION)}</p>
   </div>`;
 }
 
@@ -722,4 +727,19 @@ async function init() {
   render();
 }
 
-init();
+// Startfehler dürfen nie in einer leeren Seite enden — lieber eine
+// verständliche Fehlerkarte zeigen als einen Blackscreen.
+init().catch((e) => {
+  console.error(e);
+  app.innerHTML = `
+  <div class="screen screen-start">
+    <header class="start-head">
+      <div class="logo">⚠️</div>
+      <h1>Hoppla</h1>
+      <p class="tagline">Die App konnte nicht starten.</p>
+    </header>
+    <p class="error-detail">${esc(e?.message || e)}</p>
+    <button class="btn btn-primary" onclick="location.reload()">Neu laden</button>
+    <p class="version">${esc(APP_VERSION)}</p>
+  </div>`;
+});

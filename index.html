@@ -13,6 +13,25 @@
 <body>
   <noscript><p style="padding:2rem;text-align:center">Dieses Tool braucht JavaScript.</p></noscript>
   <main id="app" aria-live="polite"></main>
+  <script>
+    // Fallback gegen Blackscreens: Scheitert schon das Laden der Module
+    // (Syntaxfehler, kaputter Cache, Netzwerk), läuft app.js nie — dann
+    // nach 4s eine verständliche Fehlerkarte statt einer leeren Seite zeigen.
+    window.addEventListener("error", function (e) { window.__loadError = window.__loadError || e.message; }, true);
+    setTimeout(function () {
+      var app = document.getElementById("app");
+      if (app && !app.firstElementChild) {
+        app.innerHTML =
+          '<div class="screen screen-start"><header class="start-head">' +
+          '<div class="logo">⚠️</div><h1>Hoppla</h1>' +
+          '<p class="tagline">Die App konnte nicht geladen werden.</p></header>' +
+          '<p class="error-detail"></p>' +
+          '<button class="btn btn-primary" onclick="location.reload()">Neu laden</button></div>';
+        app.querySelector(".error-detail").textContent =
+          window.__loadError || "Unbekannter Ladefehler — möglicherweise ein alter Stand im Cache.";
+      }
+    }, 4000);
+  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
