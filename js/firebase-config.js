@@ -11,7 +11,7 @@
 //
 // Solange hier die Platzhalter stehen, läuft das Tool im lokalen Modus
 // (ein Gerät, kein Sync zwischen Handys).
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyBQ_wBR3qDEDsWqP0nCGuGm1_txCdhjerg",
   authDomain: "munchkin-c233e.firebaseapp.com",
   databaseURL: "https://munchkin-c233e-default-rtdb.europe-west1.firebasedatabase.app",
