@@ -11,13 +11,12 @@
 //
 // Solange hier die Platzhalter stehen, läuft das Tool im lokalen Modus
 // (ein Gerät, kein Sync zwischen Handys).
-
-export const firebaseConfig = {
-  apiKey: "DEIN-API-KEY",
-  authDomain: "DEIN-PROJEKT.firebaseapp.com",
-  databaseURL: "https://DEIN-PROJEKT-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "DEIN-PROJEKT",
-  storageBucket: "DEIN-PROJEKT.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:0000000000000000000000",
+const firebaseConfig = {
+  apiKey: "AIzaSyBQ_wBR3qDEDsWqP0nCGuGm1_txCdhjerg",
+  authDomain: "munchkin-c233e.firebaseapp.com",
+  databaseURL: "https://munchkin-c233e-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "munchkin-c233e",
+  storageBucket: "munchkin-c233e.firebasestorage.app",
+  messagingSenderId: "104877715080",
+  appId: "1:104877715080:web:015c391e0b77eaf27d393d"
 };
