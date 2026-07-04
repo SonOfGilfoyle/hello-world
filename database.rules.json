@@ -1,0 +1,35 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "sessions": {
+      "$code": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$code.matches(/^[A-Z2-9]{5}$/)",
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "players": {
+          "$playerId": {
+            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 24" },
+            "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10" },
+            "bonus": { ".validate": "newData.isNumber() && newData.val() >= -99 && newData.val() <= 999" },
+            "online": { ".validate": "newData.isBoolean()" },
+            "joinedAt": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        },
+        "combat": {
+          "fighterId": { ".validate": "newData.isString()" },
+          "monster": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 999" },
+          "oneShot": { ".validate": "newData.isNumber() && newData.val() >= -999 && newData.val() <= 999" },
+          "startedAt": { ".validate": "newData.isNumber()" },
+          "helpers": {
+            "$playerId": { ".validate": "newData.isBoolean()" }
+          },
+          "$other": { ".validate": false }
+        },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

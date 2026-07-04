@@ -1,0 +1,665 @@
+/* Munchkin Stärke-Tracker — ruhige, mobile-first UI.
+   Grundsatz: große Touch-Ziele, wenig Farbe, keine Ablenkung vom Spieltisch. */
+
+:root {
+  --bg: #f4efe6;
+  --card: #fffdf8;
+  --card-2: #f7f2e9;
+  --text: #2b2620;
+  --muted: #877d6f;
+  --border: rgba(70, 55, 35, 0.14);
+  --accent: #8a5a2b;
+  --accent-text: #fff;
+  --win: #2f7d3f;
+  --lose: #b3372f;
+  --tie: #9a7420;
+  --gold-tint: rgba(214, 168, 60, 0.16);
+  --combat-tint: rgba(150, 80, 60, 0.10);
+  --shadow: 0 1px 3px rgba(50, 40, 20, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1813;
+    --card: #262119;
+    --card-2: #2e2820;
+    --text: #ece5d8;
+    --muted: #9c9284;
+    --border: rgba(240, 220, 180, 0.13);
+    --accent: #d9a556;
+    --accent-text: #241c10;
+    --win: #6fc47f;
+    --lose: #e88a80;
+    --tie: #d4b25e;
+    --gold-tint: rgba(214, 168, 60, 0.12);
+    --combat-tint: rgba(220, 120, 90, 0.10);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.4;
+  touch-action: manipulation;
+}
+
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------- Start */
+
+.screen-start {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 8vh;
+}
+
+.start-head {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.logo {
+  font-size: 44px;
+}
+
+.start-head h1 {
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.start-head h1 span {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.tagline {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.field span {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 13px 14px;
+  font: inherit;
+  font-size: 17px;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+}
+
+input[type="text"]:focus {
+  border-color: var(--accent);
+}
+
+#code-input {
+  text-transform: uppercase;
+  letter-spacing: 0.35em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn-small {
+  width: auto;
+  display: inline-block;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.btn-danger {
+  background: var(--lose);
+  border-color: var(--lose);
+  color: #fff;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.join-row {
+  display: flex;
+  gap: 10px;
+}
+
+.join-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.join-row .btn {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.hint-local {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ----------------------------------------------------------- Session */
+
+.screen-session {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.session-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.head-title {
+  font-size: 20px;
+}
+
+.code-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  font-size: 15px;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-right: auto;
+}
+
+.code-chip strong {
+  color: var(--text);
+  letter-spacing: 0.18em;
+}
+
+.code-chip-static {
+  cursor: default;
+}
+
+.icon-btn {
+  padding: 10px;
+  color: var(--muted);
+  border-radius: 10px;
+}
+
+/* Banner: Sieg & laufender Kampf */
+
+.banner {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 15px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.banner-victory {
+  background: var(--gold-tint);
+  border-color: rgba(214, 168, 60, 0.5);
+}
+
+.banner-combat {
+  background: var(--combat-tint);
+}
+
+.banner .win { color: var(--win); font-weight: 700; }
+.banner .lose { color: var(--lose); font-weight: 700; }
+.banner .tie { color: var(--tie); font-weight: 700; }
+
+/* Eigene Karte */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 16px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.player-name {
+  font-weight: 700;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.ghost-btn {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 6px 8px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.death-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.stepper {
+  text-align: center;
+}
+
+.stepper > .stat-label {
+  margin-bottom: 6px;
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.step-btn {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.step-btn:active:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.step-value {
+  display: inline-block;
+  min-width: 2ch;
+  padding: 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.strength {
+  text-align: center;
+}
+
+.strength-value {
+  display: block;
+  font-size: 58px;
+  font-weight: 800;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.rule-hint {
+  font-size: 13px;
+  color: var(--tie);
+  text-align: center;
+}
+
+.btn-combat {
+  padding: 11px;
+  font-size: 15px;
+}
+
+.btn-add {
+  align-self: center;
+  margin: 0 auto;
+  display: block;
+}
+
+/* Mitspieler-Liste */
+
+.others {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.other-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.other-row.offline {
+  opacity: 0.5;
+}
+
+.other-info .player-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.other-detail {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.other-strength {
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+/* -------------------------------------------------------------- Sheet */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 15, 8, 0.45);
+  z-index: 10;
+}
+
+.sheet {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 8px 20px calc(20px + env(safe-area-inset-bottom));
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sheet-anim {
+    animation: sheet-in 0.18s ease-out;
+  }
+  @keyframes sheet-in {
+    from { transform: translate(-50%, 24px); opacity: 0.6; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+  }
+}
+
+.sheet-grab {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 4px auto 0;
+}
+
+.sheet h2 {
+  font-size: 18px;
+  text-align: center;
+}
+
+.sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.sheet-actions .btn-small {
+  align-self: center;
+  color: var(--muted);
+  border: none;
+  background: none;
+}
+
+/* Kampf */
+
+.verdict {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.verdict span {
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.verdict small {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.verdict.win { color: var(--win); background: color-mix(in srgb, var(--win) 12%, transparent); }
+.verdict.lose { color: var(--lose); background: color-mix(in srgb, var(--lose) 12%, transparent); }
+.verdict.tie { color: var(--tie); background: color-mix(in srgb, var(--tie) 12%, transparent); }
+
+.combat-totals {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.combat-totals span {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 0 6px;
+}
+
+.combat-steppers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stepper-wide {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 6px 12px;
+}
+
+.stepper-wide .step-btn {
+  background: var(--card);
+}
+
+.helper-block .stat-label {
+  margin-bottom: 8px;
+}
+
+.helper-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-2);
+}
+
+.chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* QR */
+
+.sheet-qr .code-big {
+  text-align: center;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+
+.qr-box {
+  width: min(240px, 60vw);
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.qr-box svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* -------------------------------------------------------------- Toast */
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 12px);
+  max-width: 90vw;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 20;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
