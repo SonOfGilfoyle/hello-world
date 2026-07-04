@@ -26,6 +26,9 @@
           "helpers": {
             "$playerId": { ".validate": "newData.isBoolean()" }
           },
+          "helpRequests": {
+            "$playerId": { ".validate": "newData.isBoolean()" }
+          },
           "$other": { ".validate": false }
         },
         "$other": { ".validate": false }

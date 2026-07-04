@@ -116,6 +116,12 @@ export class FirebaseStore {
     if (isHelping) this.fb.set(helperRef, true);
     else this.fb.remove(helperRef);
   }
+
+  setHelpRequest(code, playerId, isRequesting) {
+    const reqRef = this.ref(`sessions/${code}/combat/helpRequests/${playerId}`);
+    if (isRequesting) this.fb.set(reqRef, true);
+    else this.fb.remove(reqRef);
+  }
 }
 
 // ------------------------------------------------------------------ Lokal
@@ -204,6 +210,15 @@ export class LocalStore {
       data.combat.helpers = data.combat.helpers || {};
       if (isHelping) data.combat.helpers[playerId] = true;
       else delete data.combat.helpers[playerId];
+    });
+  }
+
+  setHelpRequest(code, playerId, isRequesting) {
+    this.mutate((data) => {
+      if (!data.combat) return;
+      data.combat.helpRequests = data.combat.helpRequests || {};
+      if (isRequesting) data.combat.helpRequests[playerId] = true;
+      else delete data.combat.helpRequests[playerId];
     });
   }
 }

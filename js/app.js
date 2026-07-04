@@ -9,7 +9,7 @@ const MAX_NAME = 24;
 
 // Bei jedem Deployment sichtbar im Start-Screen — so ist sofort erkennbar,
 // ob Browser/CDN noch einen alten Stand ausliefern.
-const APP_VERSION = "v1.1 · 2026-07-04";
+const APP_VERSION = "v1.2 · 2026-07-04";
 
 // ------------------------------------------------------------ Präferenzen
 
@@ -336,7 +336,9 @@ function viewCombatSheet(combat, players) {
   const local = !sync.live;
   const iAmFighter = local || combat.fighterId === state.playerId;
   const iAmHelping = !!combat.helpers?.[state.playerId];
+  const iRequested = !!combat.helpRequests?.[state.playerId];
   const candidates = players.filter((p) => p.id !== combat.fighterId);
+  const requests = candidates.filter((p) => combat.helpRequests?.[p.id] && !combat.helpers?.[p.id]);
 
   return `
   <div class="backdrop" data-action="close-sheet"></div>
@@ -351,20 +353,34 @@ function viewCombatSheet(combat, players) {
       <div class="stepper stepper-wide">
         <span class="stat-label">Monster (gesamt)</span>
         <div class="step-row">
-          <button class="step-btn" data-action="cstep" data-field="monster" data-delta="-1" ${!iAmFighter || m.monster <= 1 ? "disabled" : ""} aria-label="Monster verringern">−</button>
+          <button class="step-btn" data-action="cstep" data-field="monster" data-delta="-1" ${m.monster <= 1 ? "disabled" : ""} aria-label="Monster verringern">−</button>
           <span class="step-value">${num(m.monster)}</span>
-          <button class="step-btn" data-action="cstep" data-field="monster" data-delta="1" ${!iAmFighter ? "disabled" : ""} aria-label="Monster erhöhen">+</button>
+          <button class="step-btn" data-action="cstep" data-field="monster" data-delta="1" aria-label="Monster erhöhen">+</button>
         </div>
       </div>
       <div class="stepper stepper-wide">
         <span class="stat-label">Einmal-Boni</span>
         <div class="step-row">
-          <button class="step-btn" data-action="cstep" data-field="oneShot" data-delta="-1" ${!iAmFighter ? "disabled" : ""} aria-label="Einmal-Boni verringern">−</button>
+          <button class="step-btn" data-action="cstep" data-field="oneShot" data-delta="-1" aria-label="Einmal-Boni verringern">−</button>
           <span class="step-value">${signed(combat.oneShot || 0)}</span>
-          <button class="step-btn" data-action="cstep" data-field="oneShot" data-delta="1" ${!iAmFighter ? "disabled" : ""} aria-label="Einmal-Boni erhöhen">+</button>
+          <button class="step-btn" data-action="cstep" data-field="oneShot" data-delta="1" aria-label="Einmal-Boni erhöhen">+</button>
         </div>
       </div>
     </div>
+    <p class="hint-combat">Tränke, Flüche &amp; Co. darf jeder hier einrechnen — auf beiden Seiten.</p>
+
+    ${iAmFighter && requests.length ? `
+    <div class="helper-block">
+      <span class="stat-label">Anfragen</span>
+      ${requests.map((p) => `
+      <div class="request-row">
+        <span class="request-text">🤝 <strong>${esc(p.name)}</strong> will mithelfen (Stärke ${num(strengthOf(p))})</span>
+        <span class="request-actions">
+          <button class="btn btn-small btn-primary" data-action="accept-help" data-player="${esc(p.id)}">Annehmen</button>
+          <button class="btn btn-small" data-action="decline-help" data-player="${esc(p.id)}">Nein</button>
+        </span>
+      </div>`).join("")}
+    </div>` : ""}
 
     ${candidates.length ? `
     <div class="helper-block">
@@ -372,9 +388,9 @@ function viewCombatSheet(combat, players) {
       <div class="helper-chips">
         ${candidates.map((p) => {
           const on = !!combat.helpers?.[p.id];
-          const mayToggle = iAmFighter || p.id === state.playerId;
-          return `<button class="chip${on ? " on" : ""}" data-action="toggle-helper" data-player="${esc(p.id)}"
-                    ${mayToggle ? "" : "disabled"}>${esc(p.name)} (${num(strengthOf(p))})</button>`;
+          const pending = !on && !!combat.helpRequests?.[p.id];
+          return `<button class="chip${on ? " on" : ""}${pending ? " pending" : ""}" data-action="toggle-helper" data-player="${esc(p.id)}"
+                    ${iAmFighter ? "" : "disabled"}>${esc(p.name)} (${num(strengthOf(p))})${pending ? " ?" : ""}</button>`;
         }).join("")}
       </div>
     </div>` : ""}
@@ -384,9 +400,11 @@ function viewCombatSheet(combat, players) {
         <button class="btn btn-primary" data-action="combat-win">🏆 Sieg — Level +1</button>
         <button class="btn" data-action="combat-end">Kampf beenden</button>
       ` : `
-        <button class="btn ${iAmHelping ? "" : "btn-primary"}" data-action="toggle-helper" data-player="${esc(state.playerId)}">
-          ${iAmHelping ? "Nicht mehr mithelfen" : "🤝 Mithelfen"}
-        </button>
+        ${iAmHelping
+          ? `<button class="btn" data-action="leave-help">Nicht mehr mithelfen</button>`
+          : iRequested
+            ? `<button class="btn" data-action="cancel-help-request">Anfrage gesendet … zurückziehen</button>`
+            : `<button class="btn btn-primary" data-action="request-help">🤝 Mithelfen anfragen</button>`}
         <button class="btn btn-small" data-action="combat-end">Kampf beenden (falls hängen geblieben)</button>
       `}
     </div>
@@ -436,6 +454,14 @@ async function enterSession(code, playerId) {
   state.confirmingDeath = null;
   state.unsubscribe?.();
   state.unsubscribe = sync.subscribe(code, (session) => {
+    // Kämpfer per Toast auf neue Mithelfen-Anfragen hinweisen (falls das
+    // Kampf-Sheet gerade nicht offen ist, würde er sie sonst verpassen)
+    if (sync.live && session?.combat?.fighterId === state.playerId) {
+      const prev = state.session?.combat?.helpRequests || {};
+      for (const pid of Object.keys(session.combat.helpRequests || {})) {
+        if (!prev[pid]) toast(`🤝 ${session.players?.[pid]?.name || "Jemand"} möchte mithelfen`);
+      }
+    }
     state.session = session;
     // Kampf-Sheet schließen, wenn der Kampf (von wem auch immer) beendet wurde
     if (state.sheet === "combat" && !session?.combat) state.sheet = null;
@@ -559,11 +585,39 @@ const actions = {
     sync.setCombat(state.code, { ...combat, [field]: next });
   },
 
+  // Nur der Kämpfer (bzw. lokaler Modus): Mitstreiter direkt setzen —
+  // das bildet den mündlichen Deal am Tisch ab. Nimmt eine offene Anfrage
+  // desselben Spielers gleich mit an.
   "toggle-helper"(el) {
     const combat = state.session?.combat;
     if (!combat) return;
     const id = el.dataset.player;
-    sync.setHelper(state.code, id, !combat.helpers?.[id]);
+    const next = !combat.helpers?.[id];
+    sync.setHelper(state.code, id, next);
+    if (next && combat.helpRequests?.[id]) sync.setHelpRequest(state.code, id, false);
+  },
+
+  "request-help"() {
+    if (!state.session?.combat) return;
+    sync.setHelpRequest(state.code, state.playerId, true);
+  },
+
+  "cancel-help-request"() {
+    sync.setHelpRequest(state.code, state.playerId, false);
+  },
+
+  "leave-help"() {
+    sync.setHelper(state.code, state.playerId, false);
+  },
+
+  "accept-help"(el) {
+    const id = el.dataset.player;
+    sync.setHelper(state.code, id, true);
+    sync.setHelpRequest(state.code, id, false);
+  },
+
+  "decline-help"(el) {
+    sync.setHelpRequest(state.code, el.dataset.player, false);
   },
 
   "combat-win"() {
