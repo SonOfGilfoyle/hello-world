@@ -9,7 +9,7 @@ const MAX_NAME = 24;
 
 // Bei jedem Deployment sichtbar im Start-Screen — so ist sofort erkennbar,
 // ob Browser/CDN noch einen alten Stand ausliefern.
-const APP_VERSION = "v1.3 · 2026-07-04";
+const APP_VERSION = "v1.4 · 2026-07-05";
 
 // Advanced-Features hinter Session-Einstellungen (Default: aus) — neue Nutzer
 // sehen nur den Kern: Level + Bonus = Stärke, live für alle.
@@ -80,8 +80,10 @@ function signed(n) {
   return n > 0 ? "+" + n : num(n);
 }
 
+// Effektive Kampfstärke: negative Summen (stark negativer Bonus) werden als
+// 0 behandelt — angezeigt UND im Kampf verrechnet, damit beides übereinstimmt.
 function strengthOf(p) {
-  return (p.level ?? 1) + (p.bonus ?? 0);
+  return Math.max(0, (p.level ?? 1) + (p.bonus ?? 0));
 }
 
 function playersOf(session) {
@@ -218,7 +220,8 @@ function viewSession() {
              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1 1h6v6H1V1zm2 2v2h2V3H3zm6-2h6v6H9V1zm2 2v2h2V3h-2zM1 9h6v6H1V9zm2 2v2h2v-2H3zm8-2h2v2h-2V9zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2z"/></svg>
            </button>`}
       <button class="icon-btn" data-action="open-settings" title="Einstellungen" aria-label="Einstellungen">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.2v2.1m0 11.4v2.1M2.2 10h2.1m11.4 0h2.1M4.5 4.5l1.5 1.5m8 8 1.5 1.5m0-11-1.5 1.5m-8 8-1.5 1.5"/></svg>
+        <!-- Zahnrad (Feather Icons „settings", MIT) -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </header>
 
@@ -266,7 +269,7 @@ function viewOwnCard(p, crowned, players, { local }) {
     </div>
 
     <div class="strength">
-      <span class="strength-value">${num(level + bonus)}</span>
+      <span class="strength-value">${num(strengthOf(p))}</span>
       <span class="stat-label">Stärke</span>
     </div>
 
