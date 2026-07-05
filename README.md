@@ -9,15 +9,23 @@ ab; gespielt wird weiter auf dem Brett.
 
 - **Runden per Code, Link oder QR-Code beitreten** — Name einmal eingeben, fertig
 - **Live-Sync**: Level-/Bonus-Änderungen erscheinen sofort bei allen Mitspielern
-- **Kampf-Rechner** (optional): Monster-Stärke einstellen, Mitstreiter antippen,
-  Einmal-Boni dazu → zeigt live „Gewinnt / Verliert / Gleichstand (nur Krieger
-  gewinnen)". Alle am Tisch sehen den Kampf mit. „Sieg" gibt automatisch +1 Level.
 - **Regel-Automatik ohne Eingaben**: Level klemmt bei 1 und 10, Hinweis auf
   „Level 10 nur durch Monster-Kill", Sieg-Banner, 👑 für die Führenden,
-  „💀 Gestorben"-Knopf (Level bleibt, Boni weg), Weglauf-Hinweis bei Niederlage
+  Weglauf-Hinweis bei Niederlage
 - **Bildschirm bleibt an** (Wake Lock), solange die Runde offen ist
 - **Offline-Modus**: Ohne Firebase-Setup läuft alles auf einem Gerät
   (Handy herumreichen) — gut zum Ausprobieren
+
+Bewusst schlank: Neue Runden zeigen nur den Kern — Stärke tracken. Extras
+stecken in den **Einstellungen** (⚙️, gelten pro Runde, jeder darf schalten,
+Standard: aus):
+
+- **⚔️ Kampf-Rechner**: Monster-Stärke einstellen, Einmal-Boni dazu →
+  zeigt live „Gewinnt / Verliert / Gleichstand (nur Krieger gewinnen)".
+  Mithelfen ist regelgetreu eine Anfrage, die der Kämpfer annimmt; Tränke &
+  Flüche darf jeder auf beiden Seiten einrechnen. „Sieg" gibt +1 Level.
+- **💀 Gestorben-Knopf**: wendet die Todesregel mit einem Tipp an
+  (Level bleibt, Boni auf 0)
 
 ## Einrichtung
 
@@ -78,8 +86,9 @@ python3 -m http.server 8080
 ```
 sessions/{CODE}
   createdAt
+  settings: { combat, death }                       # Extras, Default aus
   players/{playerId}: { name, level (1–10), bonus, online, joinedAt }
-  combat: { fighterId, monster, oneShot, helpers{}, startedAt }   # nur im Kampf
+  combat: { fighterId, monster, oneShot, helpers{}, helpRequests{}, startedAt }
 ```
 
 ## Geplant (Phase 2)

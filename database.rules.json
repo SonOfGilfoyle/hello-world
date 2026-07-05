@@ -8,6 +8,11 @@
         ".write": true,
         ".validate": "$code.matches(/^[A-Z2-9]{5}$/)",
         "createdAt": { ".validate": "newData.isNumber()" },
+        "settings": {
+          "combat": { ".validate": "newData.isBoolean()" },
+          "death": { ".validate": "newData.isBoolean()" },
+          "$other": { ".validate": false }
+        },
         "players": {
           "$playerId": {
             "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 24" },

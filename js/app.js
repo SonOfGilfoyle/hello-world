@@ -9,7 +9,24 @@ const MAX_NAME = 24;
 
 // Bei jedem Deployment sichtbar im Start-Screen — so ist sofort erkennbar,
 // ob Browser/CDN noch einen alten Stand ausliefern.
-const APP_VERSION = "v1.2 · 2026-07-04";
+const APP_VERSION = "v1.3 · 2026-07-04";
+
+// Advanced-Features hinter Session-Einstellungen (Default: aus) — neue Nutzer
+// sehen nur den Kern: Level + Bonus = Stärke, live für alle.
+const SETTING_DEFS = [
+  {
+    key: "combat",
+    icon: "⚔️",
+    label: "Kampf-Rechner",
+    desc: "Monster, Mitstreiter und Einmal-Boni im Kampf zusammenrechnen — live für den ganzen Tisch.",
+  },
+  {
+    key: "death",
+    icon: "💀",
+    label: "Gestorben-Knopf",
+    desc: "Wendet die Todesregel mit einem Tipp an: Level bleibt, Boni auf 0.",
+  },
+];
 
 // ------------------------------------------------------------ Präferenzen
 
@@ -187,7 +204,8 @@ function viewSession() {
   const maxLevel = Math.max(0, ...players.map((p) => p.level ?? 1));
   const crowned = maxLevel >= 2 ? new Set(players.filter((p) => (p.level ?? 1) === maxLevel).map((p) => p.id)) : new Set();
   const winner = players.find((p) => (p.level ?? 1) >= 10);
-  const combat = s?.combat;
+  const settings = s?.settings || {};
+  const combat = settings.combat ? s?.combat : null;
 
   return `
   <div class="screen screen-session">
@@ -199,8 +217,8 @@ function viewSession() {
              Code <strong>${esc(state.code)}</strong>
              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1 1h6v6H1V1zm2 2v2h2V3H3zm6-2h6v6H9V1zm2 2v2h2V3h-2zM1 9h6v6H1V9zm2 2v2h2v-2H3zm8-2h2v2h-2V9zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2z"/></svg>
            </button>`}
-      <button class="icon-btn" data-action="leave" title="Runde verlassen" aria-label="Runde verlassen">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 6.5v-3h-9v13h9v-3M8 10h9m0 0-2.5-2.5M17 10l-2.5 2.5"/></svg>
+      <button class="icon-btn" data-action="open-settings" title="Einstellungen" aria-label="Einstellungen">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.2v2.1m0 11.4v2.1M2.2 10h2.1m11.4 0h2.1M4.5 4.5l1.5 1.5m8 8 1.5 1.5m0-11-1.5 1.5m-8 8-1.5 1.5"/></svg>
       </button>
     </header>
 
@@ -225,10 +243,12 @@ function viewSession() {
 
     ${state.sheet === "qr" ? viewQrSheet() : ""}
     ${state.sheet === "combat" && combat ? viewCombatSheet(combat, players) : ""}
+    ${state.sheet === "settings" ? viewSettingsSheet(settings) : ""}
   </div>`;
 }
 
 function viewOwnCard(p, crowned, players, { local }) {
+  const settings = state.session?.settings || {};
   const dying = state.confirmingDeath === p.id;
   const level = p.level ?? 1;
   const bonus = p.bonus ?? 0;
@@ -236,7 +256,7 @@ function viewOwnCard(p, crowned, players, { local }) {
   <section class="card own-card" data-player="${esc(p.id)}">
     <div class="card-head">
       <span class="player-name">${crowned.has(p.id) ? "👑 " : ""}${esc(p.name)}</span>
-      ${dying ? `
+      ${!settings.death ? "" : dying ? `
         <span class="death-confirm">
           Boni auf 0?
           <button class="btn btn-small btn-danger" data-action="death-confirm" data-player="${esc(p.id)}">Ja, tot</button>
@@ -257,8 +277,9 @@ function viewOwnCard(p, crowned, players, { local }) {
 
     ${level === 9 ? `<p class="rule-hint">⚔️ Noch 1 Level — Level 10 gibt’s nur durch einen Monster&#8209;Kill.</p>` : ""}
 
+    ${settings.combat ? `
     <button class="btn btn-combat" data-action="open-combat" data-player="${esc(p.id)}"
-            ${state.session?.combat ? "disabled" : ""}>⚔️ Kampf</button>
+            ${state.session?.combat ? "disabled" : ""}>⚔️ Kampf</button>` : ""}
   </section>`;
 }
 
@@ -411,6 +432,31 @@ function viewCombatSheet(combat, players) {
   </div>`;
 }
 
+// ------------------------------------------------------------ Einstellungen
+
+function viewSettingsSheet(settings) {
+  return `
+  <div class="backdrop" data-action="close-sheet"></div>
+  <div class="sheet${state.sheetAnim ? " sheet-anim" : ""}" role="dialog" aria-label="Einstellungen">
+    <div class="sheet-grab"></div>
+    <h2>Einstellungen</h2>
+    <p class="sheet-sub">Gilt für die ganze Runde — jeder am Tisch darf schalten.</p>
+    ${SETTING_DEFS.map((d) => `
+    <label class="setting-row">
+      <span class="setting-text">
+        <strong>${d.icon} ${d.label}</strong>
+        <small>${d.desc}</small>
+      </span>
+      <input type="checkbox" class="switch" data-change="toggle-setting" data-key="${d.key}"
+             ${settings[d.key] ? "checked" : ""} aria-label="${d.label} umschalten">
+    </label>`).join("")}
+    <div class="sheet-actions">
+      <button class="btn" data-action="leave">Runde verlassen</button>
+      <button class="btn btn-small" data-action="close-sheet">Schließen</button>
+    </div>
+  </div>`;
+}
+
 // --------------------------------------------------------------------- QR
 
 function viewQrSheet() {
@@ -460,6 +506,17 @@ async function enterSession(code, playerId) {
       const prev = state.session?.combat?.helpRequests || {};
       for (const pid of Object.keys(session.combat.helpRequests || {})) {
         if (!prev[pid]) toast(`🤝 ${session.players?.[pid]?.name || "Jemand"} möchte mithelfen`);
+      }
+    }
+    // Umgeschaltete Einstellungen ansagen, damit der Tisch versteht, warum
+    // ein Button auftaucht/verschwindet. Nicht beim allerersten Snapshot.
+    if (state.session) {
+      const prev = state.session.settings || {};
+      const next = session?.settings || {};
+      for (const d of SETTING_DEFS) {
+        if (!!prev[d.key] !== !!next[d.key]) {
+          toast(`${d.icon} ${d.label} ${next[d.key] ? "aktiviert" : "deaktiviert"}`);
+        }
       }
     }
     state.session = session;
@@ -643,6 +700,21 @@ const actions = {
     openSheet("qr");
   },
 
+  "open-settings"() {
+    openSheet("settings");
+  },
+
+  "toggle-setting"(el) {
+    const key = el.dataset.key;
+    const next = !state.session?.settings?.[key];
+    sync.setSetting(state.code, key, next);
+    // Kampf-Rechner abschalten beendet einen laufenden Kampf mit —
+    // sonst bliebe ein unsichtbarer Kampf im Datenmodell hängen.
+    if (key === "combat" && !next && state.session?.combat) {
+      sync.setCombat(state.code, null);
+    }
+  },
+
   "close-sheet"() {
     state.sheet = null;
     render();
@@ -706,6 +778,11 @@ app.addEventListener("click", (e) => {
   // Steppers werden über pointerdown (mit Halte-Wiederholung) bedient
   if (el.dataset.action === "step" || el.dataset.action === "cstep") return;
   actions[el.dataset.action]?.(el);
+});
+
+app.addEventListener("change", (e) => {
+  const el = e.target.closest("[data-change]");
+  if (el) actions[el.dataset.change]?.(el);
 });
 
 app.addEventListener("submit", (e) => {

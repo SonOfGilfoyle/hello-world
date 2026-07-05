@@ -122,6 +122,10 @@ export class FirebaseStore {
     if (isRequesting) this.fb.set(reqRef, true);
     else this.fb.remove(reqRef);
   }
+
+  setSetting(code, key, value) {
+    this.fb.set(this.ref(`sessions/${code}/settings/${key}`), value);
+  }
 }
 
 // ------------------------------------------------------------------ Lokal
@@ -219,6 +223,13 @@ export class LocalStore {
       data.combat.helpRequests = data.combat.helpRequests || {};
       if (isRequesting) data.combat.helpRequests[playerId] = true;
       else delete data.combat.helpRequests[playerId];
+    });
+  }
+
+  setSetting(code, key, value) {
+    this.mutate((data) => {
+      data.settings = data.settings || {};
+      data.settings[key] = value;
     });
   }
 }
