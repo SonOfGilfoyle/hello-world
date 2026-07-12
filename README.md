@@ -1,8 +1,9 @@
 # 🍾 PFANDLORD – Vom Penner zur Legende
 
-Ein modernes Remake des Browser-Klassikers **Pennergame** – als schnelles,
-mobile-first Idle-Game. Sammle Pfandflaschen, schnorr dich reich, bau dein
-Equipment aus und werde vom Frischling zum **PFANDLORD**.
+Ein modernes Remake des Browser-Klassikers **Pennergame** – als **Endless-Idle-Game**.
+Sammle Pfandflaschen, schnorr dich reich, bau eine Sammel-Kolonne auf und werde
+vom Frischling zum **PFANDLORD**. Es gibt kein Ende: Alle Systeme skalieren
+unendlich, und jeder Neuanfang macht dich dauerhaft stärker.
 
 Komplett in Vanilla JS – keine Dependencies, kein Build-Schritt, kein Account.
 Der Spielstand liegt im `localStorage` deines Browsers.
@@ -10,16 +11,23 @@ Der Spielstand liegt im `localStorage` deines Browsers.
 ## 🎮 Features
 
 - **Sammel-Touren** mit echten Timern (30 Sekunden bis 8 Stunden) – längere
-  Touren bringen mehr Flaschen pro Minute
-- **Pfandkurs-Börse** 📈 – der Flaschenpreis schwankt, verkauf zum richtigen Zeitpunkt
+  Touren bringen mehr Flaschen pro Minute, mit Zufalls-Events unterwegs
+- **Sammel-Kolonne** 👥 – rekrutiere Kumpels, Bollerwagen-Crews, Drohnen, einen
+  Recyclinghof, am Ende eine eigene Brauerei und die börsennotierte PFAND AG.
+  Passives Einkommen rund um die Uhr, alle 25 Einheiten verdoppelt sich die Produktion
+- **Pfandkurs-Börse** 📈 – der Flaschenpreis schwankt und wirkt auch aufs passive Einkommen
 - **Schnorren** als Clicker-Minigame mit Combo-Multiplikator und Crits
-- **6 Stadtteile** von der Vorstadt bis zur Festwiese (bis zu 9× Ausbeute)
-- **Ausrüstung**: Einkaufswagen, Hund, Magnet-Angel, E-Scooter, Tiny House …
-- **Weiterbildung**: 4 Skills mit Echtzeit-Training (läuft auch offline weiter)
-- **Offline-Fortschritt** – dein Charakter sammelt weiter, während du weg bist
-- **Daily-Login-Streak** mit wachsenden Belohnungen
-- **18 Erfolge** und ein **Prestige-System** („Respekt“) für Langzeitmotivation
-- Dark Mode, Touch-optimiert, Vibrations-Feedback, Spielstand-Export/-Import
+- **Endlose Stadtteile** – nach den 6 handgemachten Revieren geht es prozedural
+  weiter (Flughafen-Terminal, Banken-Distrikt, Mega-Festival …)
+- **Endlose Ausrüstung & Skills** – keine Maximalstufen, Kosten wachsen exponentiell
+- **Respekt-Talentbaum** ⭐ – Prestige ab Level 25 bringt Punkte für permanente
+  Boni: Startkapital, Auto-Touren, Verkaufs-Bot, mehr Offline-Zeit …
+- **Endlose Erfolgs-Serien** – jede Stufe gibt dauerhaft +1 % auf alles
+- **Tagesaufgaben** 📋 und **Daily-Login-Streak** mit wachsenden Belohnungen
+- **Offline-Fortschritt** – Kolonne, Touren (mit Dauerläufer-Talent) und
+  Training laufen weiter, während du weg bist
+- Big-Number-Support (Mio./Mrd./Bio. …), Dark Mode, Touch-optimiert,
+  Vibrations-Feedback, Spielstand-Export/-Import
 
 ## 🚀 Starten
 

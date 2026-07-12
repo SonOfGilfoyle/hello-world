@@ -263,6 +263,58 @@ body { display: flex; flex-direction: column; }
 
 #prestige-info { margin: 8px 0; font-size: 0.9rem; }
 
+/* ---- Tagesaufgaben ---- */
+.quest {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed #21262d;
+}
+.quest:last-child { border-bottom: none; }
+.quest .q-icon { font-size: 1.3rem; }
+.quest .q-info { flex: 1; min-width: 0; }
+.quest .q-txt { font-size: 0.83rem; font-weight: 600; }
+.quest .q-bar { height: 8px; margin-top: 4px; }
+.quest .q-reward { font-size: 0.78rem; font-weight: 700; color: var(--gold); white-space: nowrap; }
+.quest.done { opacity: 0.55; }
+.quest.done .q-txt { text-decoration: line-through; }
+
+/* ---- Kolonne ---- */
+.kolonne-stats {
+  display: flex; justify-content: space-between; align-items: baseline;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+.kolonne-stats .k-income { color: var(--accent); font-weight: 800; }
+.gen-count { color: var(--gold); font-weight: 800; }
+.gen-teaser { opacity: 0.5; }
+
+.buy-toggle {
+  display: flex; gap: 6px;
+  margin-bottom: 10px;
+}
+.buy-toggle button {
+  flex: 1;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 8px;
+  padding: 7px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.buy-toggle button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.talent-points { font-size: 0.8rem; color: var(--gold); font-weight: 700; margin-left: 6px; }
+
 /* ---- Tabbar ---- */
 #tabbar {
   position: fixed;
@@ -279,17 +331,18 @@ body { display: flex; flex-direction: column; }
   background: none;
   border: none;
   color: var(--text-dim);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
   cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   position: relative;
+  padding: 0 2px;
 }
-.tab-btn span { font-size: 1.35rem; }
+.tab-btn span { font-size: 1.25rem; }
 .tab-btn.active { color: var(--accent); }
 .badge {
   position: absolute;
-  top: 6px; right: calc(50% - 22px);
+  top: 6px; right: calc(50% - 18px);
   width: 9px; height: 9px;
   border-radius: 50%;
   background: var(--red);

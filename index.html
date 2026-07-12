@@ -32,6 +32,11 @@
   <!-- ===== SAMMELN ===== -->
   <section class="tab-panel" id="tab-sammeln">
     <div class="card">
+      <h2>📋 Tagesaufgaben</h2>
+      <div id="quest-list"></div>
+    </div>
+
+    <div class="card">
       <h2>🗺️ Revier</h2>
       <div id="district-list"></div>
     </div>
@@ -85,6 +90,29 @@
     </div>
   </section>
 
+  <!-- ===== KOLONNE ===== -->
+  <section class="tab-panel" id="tab-kolonne" style="display:none">
+    <div class="card" id="kolonne-locked" style="display:none">
+      <h2>🔒 Sammel-Kolonne</h2>
+      <p class="hint">Andere sammeln für dich – rund um die Uhr, auch wenn du offline bist.</p>
+      <p id="kolonne-lock-info"></p>
+    </div>
+    <div class="card" id="kolonne-main">
+      <h2>👥 Sammel-Kolonne</h2>
+      <p class="hint">Deine Leute sammeln und verkaufen direkt am Automaten – zum aktuellen Pfandkurs. Alle 25 Stück verdoppelt sich die Produktion!</p>
+      <div class="kolonne-stats">
+        <span><b id="kolonne-rate">0 🍾/min</b></span>
+        <span class="k-income" id="kolonne-income">+0,00 €/s</span>
+      </div>
+      <div class="buy-toggle" id="buy-toggle">
+        <button data-n="1" class="active">x1</button>
+        <button data-n="10">x10</button>
+        <button data-n="max">Max</button>
+      </div>
+      <div id="gen-list"></div>
+    </div>
+  </section>
+
   <!-- ===== SHOP ===== -->
   <section class="tab-panel" id="tab-shop" style="display:none">
     <div class="card">
@@ -108,6 +136,11 @@
       </div>
       <div id="skill-list"></div>
     </div>
+    <div class="card" id="talent-card">
+      <h2>⭐ Respekt-Talente <span id="talent-points" class="talent-points"></span></h2>
+      <p class="hint">Permanente Boni – überleben jeden Neuanfang. Punkte gibt's fürs Prestige (Profil-Tab).</p>
+      <div id="talent-list"></div>
+    </div>
   </section>
 
   <!-- ===== PROFIL ===== -->
@@ -122,8 +155,8 @@
     </div>
     <div class="card" id="prestige-card">
       <h2>⭐ Neuanfang mit Respekt</h2>
-      <p class="hint">Ab Level 25: Fang von vorn an und kassiere <b>Respekt</b> –
-      jeder Punkt gibt dauerhaft <b>+3 % auf alles</b>.</p>
+      <p class="hint">Ab Level 25: Fang von vorn an und kassiere <b>Respekt-Punkte</b> für
+      den Talentbaum (Skills-Tab). Je mehr du in diesem Lauf verdient hast, desto mehr Punkte.</p>
       <div id="prestige-info"></div>
       <button class="btn btn-primary" id="btn-prestige">Neuanfang</button>
     </div>
@@ -142,6 +175,7 @@
 <nav id="tabbar">
   <button class="tab-btn active" data-tab="sammeln"><span>🍾</span>Sammeln</button>
   <button class="tab-btn" data-tab="betteln"><span>🤲</span>Betteln</button>
+  <button class="tab-btn" data-tab="kolonne"><span>👥</span>Kolonne<i class="badge" id="badge-kolonne"></i></button>
   <button class="tab-btn" data-tab="shop"><span>🛒</span>Shop<i class="badge" id="badge-shop"></i></button>
   <button class="tab-btn" data-tab="skills"><span>📚</span>Skills<i class="badge" id="badge-skills"></i></button>
   <button class="tab-btn" data-tab="profil"><span>👤</span>Profil<i class="badge" id="badge-profil"></i></button>
