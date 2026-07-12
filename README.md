@@ -16,7 +16,8 @@ Der Spielstand liegt im `localStorage` deines Browsers.
   Recyclinghof, am Ende eine eigene Brauerei und die börsennotierte PFAND AG.
   Passives Einkommen rund um die Uhr, alle 25 Einheiten verdoppelt sich die Produktion
 - **Pfandkurs-Börse** 📈 – der Flaschenpreis schwankt und wirkt auch aufs passive Einkommen
-- **Schnorren** als Clicker-Minigame mit Combo-Multiplikator und Crits
+- **Schnorren** als Clicker-Minigame mit Energie-Leiste, Combo-Multiplikator
+  und Crits – Burst-Einkommen, das mit dem passiven Einkommen mitwächst
 - **Endlose Stadtteile** – nach den 6 handgemachten Revieren geht es prozedural
   weiter (Flughafen-Terminal, Banken-Distrikt, Mega-Festival …)
 - **Endlose Ausrüstung & Skills** – keine Maximalstufen, Kosten wachsen exponentiell
@@ -49,7 +50,8 @@ docker compose up --build
 
 | Datei        | Inhalt                          |
 | ------------ | ------------------------------- |
-| `index.html` | Markup & UI-Struktur            |
-| `style.css`  | Dark-Theme, Mobile-first-Layout |
-| `game.js`    | Komplette Spiellogik            |
-| `main.py`    | Mini-Webserver zum Ausliefern   |
+| `index.html`   | Markup & UI-Struktur            |
+| `style.css`    | Dark-Theme, Mobile-first-Layout |
+| `game.js`      | Spiellogik; alle Tuning-Werte zentral im `BALANCE`-Objekt |
+| `BALANCING.md` | Design-Ziele, Nachrechnungen & Tuning-Checkliste |
+| `main.py`      | Mini-Webserver zum Ausliefern   |

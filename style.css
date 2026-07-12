@@ -209,6 +209,10 @@ body { display: flex; flex-direction: column; }
 #beg-btn span { font-size: 0.72rem; display: block; margin-top: 4px; color: var(--text-dim); }
 #combo-wrap { max-width: 260px; margin: 0 auto; }
 #combo-label { font-size: 0.78rem; color: var(--gold); font-weight: 700; display: block; margin-top: 4px; }
+#energy-wrap { max-width: 260px; margin: 10px auto 0; }
+#energy-label { font-size: 0.78rem; color: var(--blue); font-weight: 700; display: block; margin-top: 4px; }
+.progress-inner.energy { background: linear-gradient(90deg, #1f6feb, #58a6ff); }
+.m-yield.warn { color: var(--red); }
 
 /* ---- Shop / Skills ---- */
 .shop-item, .skill-item {

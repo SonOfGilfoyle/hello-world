@@ -5,6 +5,67 @@
    ============================================================ */
 "use strict";
 
+/* ============================================================
+   BALANCE – alle Tuning-Konstanten an einem Ort.
+   Formeln lesen NUR von hier; wer balanciert, fasst keine Logik an.
+   Achtung: einige UI-Texte (Item-/Skill-/Talent-Beschreibungen)
+   nennen Prozentwerte im Klartext – bei Änderungen mit anpassen.
+   Design-Ziele und Nachrechnungen: siehe BALANCING.md
+   ============================================================ */
+const BALANCE = {
+  tour: {
+    baseBottlesPerMin: 6,   // Grundrate vor allen Multiplikatoren
+    xpPerBottle: 1,         // Touren sind DIE XP-Quelle
+    abortFraction: 0.5,     // Beute-Anteil bei Abbruch
+    minDurationSec: 10,
+  },
+  beg: {
+    base: 0.03,             // € pro Tipp, Grundwert
+    perLevel: 0.002,        // flacher Level-Anteil (bewusst klein)
+    passiveShare: 0.01,     // + Anteil am Kolonnen-€/s pro Tipp → skaliert mit, überholt nie
+    critChance: 0.04, critMin: 20, critMax: 35,
+    comboMax: 50, comboStep: 0.04, comboWindowMs: 1600,
+    energyMax: 100,         // Tipps pro voller Leiste
+    energyPerSkillLvl: 5,   // Schnorr-Rhetorik erhöht das Maximum
+    regenPerSec: 0.5,       // volle Leiste in ~3,3 min
+    regenPerSkillLvl: 0.05,
+    xpPerTap: 0.3,
+  },
+  kurs: { base: 0.25, min: 0.12, max: 0.48, drift: 0.06, pullback: 0.15 },
+  items: {
+    capacityBase: 30, capacityGrowth: 1.6, // wächst schneller als früher (1.5) …
+    hundBonus: 0.15, radarBonus: 0.12, scooterTimeMult: 0.93,
+  },
+  skills: {
+    costBase: 25, costGrowth: 1.7,
+    timeBaseSec: 40, timeGrowth: 1.38,
+    sammelnBonus: 0.06, feilschenBonus: 0.05, schnorrenBonus: 0.12, stadtTimeMult: 0.97,
+  },
+  kolonne: {
+    costGrowth: 1.15,       // pro gekaufter Einheit
+    milestoneEvery: 25, milestoneMult: 2,
+    unlockLevel: 4,
+    xpPerBottle: 0.005,     // passiv deutlich weniger XP als aktive Touren
+    fuehrungBonus: 0.25,
+  },
+  talents: {
+    rufBonus: 0.05,
+    startCapitalBase: 100, startCapitalGrowth: 4,
+    schlafOfflineHours: 2, schlafOfflineRate: 0.1,
+    lehreTimeMult: 0.9,
+  },
+  prestige: { minLevel: 25, geldDivisor: 1000 },
+  offline: {
+    baseHours: 2, hoursPerLagerLvl: 2,
+    personalRateBase: 0.15, personalRatePerLagerLvl: 0.05,
+    kolonneFactorBase: 0.5,
+  },
+  xp: { levelBase: 40, levelExp: 1.55, sellPerBottle: 0.1 },
+  erfolge: { tierBonus: 0.01 },
+  daily: { basePerStreakTag: 5, kolonneSec: 300, kolonneStreakBonus: 0.1 },
+};
+const B = BALANCE;
+
 /* ---------------- Spieldaten ---------------- */
 
 const DISTRICTS = [
@@ -48,7 +109,7 @@ const ITEMS = {
   beutel: {
     emoji: "🛍️", name: "Transport", desc: "Mehr Platz für Flaschen.",
     stages: ["Plastiktüte", "Jutebeutel", "Trekking-Rucksack", "Einkaufswagen", "Lastenrad", "Sprinter (geliehen)"],
-    base: 40, growth: 2.4,
+    base: 40, growth: 2.2,
   },
   hund: {
     emoji: "🐕", name: "Begleiter", desc: "+15 % Flaschen pro Stufe.",
@@ -82,13 +143,13 @@ function itemStageName(key, lvl) {
 const SKILLS = {
   sammeln:   { emoji: "🧐", name: "Flaschenkunde",    desc: "+6 % Flaschen pro Stufe" },
   feilschen: { emoji: "🤝", name: "Feilschen",        desc: "+5 % Verkaufspreis pro Stufe" },
-  schnorren: { emoji: "🗣️", name: "Schnorr-Rhetorik", desc: "+12 % Bettel-Einnahmen pro Stufe" },
+  schnorren: { emoji: "🗣️", name: "Schnorr-Rhetorik", desc: "+12 % Bettel-Einnahmen, +5 max. Energie & schnellere Regeneration pro Stufe" },
   stadt:     { emoji: "🗺️", name: "Stadtkenntnis",    desc: "-3 % Tourdauer pro Stufe" },
 };
 
 /* Generatoren: die Sammel-Kolonne – passives Einkommen, endlos kaufbar */
 const GENERATORS = [
-  { id: "kumpel",   emoji: "🧍", name: "Sammel-Kumpel",       desc: "Sammelt für 'ne Stulle und gute Worte.",       base: 25,   rate: 0.3 },
+  { id: "kumpel",   emoji: "🧍", name: "Sammel-Kumpel",       desc: "Sammelt für 'ne Stulle und gute Worte.",       base: 25,   rate: 0.2 },
   { id: "crew",     emoji: "🛒", name: "Bollerwagen-Crew",    desc: "Drei Leute, ein Wagen, null Pausen.",          base: 300,  rate: 2 },
   { id: "drohne",   emoji: "🛸", name: "Pfand-Späher-Drohne", desc: "Scannt Parks und Hinterhöfe aus der Luft.",    base: 3500, rate: 12 },
   { id: "automat",  emoji: "♻️", name: "Eigener Pfandautomat", desc: "Die Leute bringen den Pfand jetzt zu DIR.",   base: 4e4,  rate: 70 },
@@ -97,9 +158,8 @@ const GENERATORS = [
   { id: "brauerei", emoji: "🍺", name: "Eigene Brauerei",     desc: "Du produzierst die Flaschen jetzt selbst. Genial.", base: 8e7, rate: 15000 },
   { id: "konzern",  emoji: "🏢", name: "PFAND AG",            desc: "Börsennotiert. Vom Penner zum CEO.",           base: 1e9,  rate: 100000 },
 ];
-const GEN_GROWTH = 1.15;       // Kostenwachstum pro gekaufter Einheit
-const GEN_MILESTONE = 25;      // alle 25 Stück: Produktion x2
-const KOLONNE_UNLOCK_LVL = 4;
+const GEN_MILESTONE = B.kolonne.milestoneEvery;
+const KOLONNE_UNLOCK_LVL = B.kolonne.unlockLevel;
 
 /* Respekt-Talente: permanente Meta-Progression über Prestige-Läufe */
 const TALENTS = {
@@ -178,12 +238,13 @@ const SAVE_KEY = "pfandlord_save_v1";
 
 function defaultState() {
   return {
-    version: 2,
+    version: 3,
     createdAt: Date.now(),
     lastSeen: Date.now(),
     lastGenTick: Date.now(),
     geld: 0,
     flaschen: 0,
+    energy: BALANCE.beg.energyMax,
     xp: 0,
     level: 1,
     respekt: 0,        // ausgebbare Talent-Punkte
@@ -223,56 +284,68 @@ function achTierTotal() { return SERIES.reduce((a, ser) => a + tier(ser.id), 0);
 
 // Der eine große Multiplikator: Talente × Erfolgs-Stufen
 function globalMult() {
-  return (1 + tal("ruf") * 0.05) * (1 + achTierTotal() * 0.01);
+  return (1 + tal("ruf") * B.talents.rufBonus) * (1 + achTierTotal() * B.erfolge.tierBonus);
 }
 
-function capacity() { return Math.round(30 * Math.pow(1.5, S.items.beutel)); }
+function capacity() { return Math.round(B.items.capacityBase * Math.pow(B.items.capacityGrowth, S.items.beutel)); }
 
 function bottlesPerMin() {
-  return 6
+  return B.tour.baseBottlesPerMin
     * districtDef(S.district).mult
-    * (1 + S.skills.sammeln * 0.06)
-    * (1 + S.items.hund * 0.15)
-    * (1 + S.items.radar * 0.12)
+    * (1 + S.skills.sammeln * B.skills.sammelnBonus)
+    * (1 + S.items.hund * B.items.hundBonus)
+    * (1 + S.items.radar * B.items.radarBonus)
     * globalMult();
 }
 
 function missionDuration(baseSec) {
-  return Math.max(10, Math.round(baseSec * Math.pow(0.93, S.items.scooter) * Math.pow(0.97, S.skills.stadt)));
+  return Math.max(B.tour.minDurationSec,
+    Math.round(baseSec * Math.pow(B.items.scooterTimeMult, S.items.scooter) * Math.pow(B.skills.stadtTimeMult, S.skills.stadt)));
 }
 
 function sellPrice() {
-  return S.kurs * (1 + S.skills.feilschen * 0.05) * globalMult();
+  return S.kurs * (1 + S.skills.feilschen * B.skills.feilschenBonus) * globalMult();
 }
 
+// Betteln: kleine Basis + Anteil am passiven Einkommen (Cookie-Clicker-Prinzip).
+// Fühlt sich immer lohnend an, kann Touren/Kolonne aber nie strukturell überholen.
 function begValue() {
-  return (0.03 + S.level * 0.006) * (1 + S.skills.schnorren * 0.12) * globalMult();
+  const base = (B.beg.base + S.level * B.beg.perLevel)
+    * (1 + S.skills.schnorren * B.skills.schnorrenBonus) * globalMult();
+  return base + kolonneIncome() * B.beg.passiveShare;
 }
 
-function xpNeeded(lvl) { return Math.round(40 * Math.pow(lvl, 1.55)); }
+function maxEnergy() { return Math.round(B.beg.energyMax + S.skills.schnorren * B.beg.energyPerSkillLvl); }
+function energyRegen() { return B.beg.regenPerSec * (1 + S.skills.schnorren * B.beg.regenPerSkillLvl); }
 
-function skillCost(lvl) { return Math.round(25 * Math.pow(1.7, lvl)); }
-function skillTime(lvl) { return Math.max(10, Math.round(40 * Math.pow(1.38, lvl) * Math.pow(0.9, tal("lehre")))); }
+function xpNeeded(lvl) { return Math.round(B.xp.levelBase * Math.pow(lvl, B.xp.levelExp)); }
 
-function genCost(g, owned) { return g.base * Math.pow(GEN_GROWTH, owned); }
-function genBulkCost(g, owned, n) { return g.base * Math.pow(GEN_GROWTH, owned) * (Math.pow(GEN_GROWTH, n) - 1) / (GEN_GROWTH - 1); }
+function skillCost(lvl) { return Math.round(B.skills.costBase * Math.pow(B.skills.costGrowth, lvl)); }
+function skillTime(lvl) {
+  return Math.max(10, Math.round(B.skills.timeBaseSec * Math.pow(B.skills.timeGrowth, lvl) * Math.pow(B.talents.lehreTimeMult, tal("lehre"))));
+}
+
+function genCost(g, owned) { return g.base * Math.pow(B.kolonne.costGrowth, owned); }
+function genBulkCost(g, owned, n) { return genCost(g, owned) * (Math.pow(B.kolonne.costGrowth, n) - 1) / (B.kolonne.costGrowth - 1); }
 function genMaxBuy(g, owned, geld) {
   const c = genCost(g, owned);
   if (geld < c) return 0;
-  return Math.floor(Math.log(geld * (GEN_GROWTH - 1) / c + 1) / Math.log(GEN_GROWTH));
+  return Math.floor(Math.log(geld * (B.kolonne.costGrowth - 1) / c + 1) / Math.log(B.kolonne.costGrowth));
 }
-function genUnitRate(g, cnt) { return g.rate * Math.pow(2, Math.floor(cnt / GEN_MILESTONE)); }
+function genUnitRate(g, cnt) { return g.rate * Math.pow(B.kolonne.milestoneMult, Math.floor(cnt / B.kolonne.milestoneEvery)); }
 function kolonneRate() { // Flaschen pro Sekunde
-  return GENERATORS.reduce((a, g) => a + gen(g.id) * genUnitRate(g, gen(g.id)), 0) * (1 + tal("fuehrung") * 0.25);
+  return GENERATORS.reduce((a, g) => a + gen(g.id) * genUnitRate(g, gen(g.id)), 0) * (1 + tal("fuehrung") * B.kolonne.fuehrungBonus);
 }
 function kolonneIncome() { return kolonneRate() * sellPrice(); } // € pro Sekunde
 function kolonneUnlocked() { return S.level >= KOLONNE_UNLOCK_LVL || totalGens(S) > 0; }
 
-function prestigeGain() { return Math.floor(Math.sqrt(S.runGeld / 1000)); }
+function prestigeGain() { return Math.floor(Math.sqrt(S.runGeld / B.prestige.geldDivisor)); }
 
-function offlineMaxHours() { return 2 + S.items.lager * 2 + tal("schlaf") * 2; }
-function offlineRate() { return bottlesPerMin() * (0.15 + S.items.lager * 0.05) * (1 + tal("schlaf") * 0.1); }
-function offlineGenFactor() { return Math.min(1, 0.5 * (1 + tal("schlaf") * 0.1)); }
+function offlineMaxHours() { return B.offline.baseHours + S.items.lager * B.offline.hoursPerLagerLvl + tal("schlaf") * B.talents.schlafOfflineHours; }
+function offlineRate() {
+  return bottlesPerMin() * (B.offline.personalRateBase + S.items.lager * B.offline.personalRatePerLagerLvl) * (1 + tal("schlaf") * B.talents.schlafOfflineRate);
+}
+function offlineGenFactor() { return Math.min(1, B.offline.kolonneFactorBase * (1 + tal("schlaf") * B.talents.schlafOfflineRate)); }
 
 /* ---------------- Formatierung ---------------- */
 
@@ -436,7 +509,7 @@ function abortMission() {
   const mi = S.mission;
   if (!mi) return;
   const elapsed = (Date.now() - mi.start) / 1000;
-  const found = Math.floor(missionBottles(mi, elapsed) * 0.5);
+  const found = Math.floor(missionBottles(mi, elapsed) * B.tour.abortFraction);
   S.mission = null;
   collectBottles(found);
   toast(`🏃 Tour abgebrochen – immerhin ${fmtNum(found)} Flaschen.`);
@@ -445,15 +518,24 @@ function abortMission() {
 }
 
 function collectBottles(n, silent = false) {
-  if (tal("autosell") >= 1 && S.flaschen > 0 && S.flaschen + n > capacity()) sellAll(true);
-  const space = capacity() - S.flaschen;
-  const kept = Math.max(0, Math.min(n, space));
-  const lost = n - kept;
+  const bot = tal("autosell") >= 1;
+  let kept = n;
+  if (!bot) {
+    // Ohne Verkaufs-Bot begrenzt das Gepäck – Überschuss verfällt
+    const space = capacity() - S.flaschen;
+    kept = Math.max(0, Math.min(n, space));
+    const lost = n - kept;
+    if (lost > 0 && !silent) toast(`😤 ${fmtNum(lost)} Flaschen passten nicht mehr rein! Kauf mehr Stauraum.`, "red");
+  }
   S.flaschen += kept;
   S.totalFlaschen += kept;
-  addXp(kept);
+  addXp(kept * B.tour.xpPerBottle);
   questProgress("sammeln", kept);
-  if (lost > 0 && !silent) toast(`😤 ${fmtNum(lost)} Flaschen passten nicht mehr rein! Kauf mehr Stauraum.`, "red");
+  if (bot && S.flaschen >= capacity()) {
+    // Der Bot verwertet auch Überschuss, statt ihn verfallen zu lassen
+    const v = sellAll(true);
+    if (v > 0 && !silent) toast(`🤖 Verkaufs-Bot: +${fmtGeld(v)}`);
+  }
   bumpStat("stat-flaschen");
   checkAchievements();
 }
@@ -488,19 +570,19 @@ function missionEventTick() {
 /* ---------------- Verkaufen / Pfandkurs ---------------- */
 
 function updateKurs() {
-  const drift = (Math.random() - 0.5) * 0.06;
-  const pull = (0.25 - S.kurs) * 0.15;
-  S.kurs = Math.min(0.48, Math.max(0.12, S.kurs + drift + pull));
+  const drift = (Math.random() - 0.5) * B.kurs.drift;
+  const pull = (B.kurs.base - S.kurs) * B.kurs.pullback;
+  S.kurs = Math.min(B.kurs.max, Math.max(B.kurs.min, S.kurs + drift + pull));
   renderKurs();
 }
 
 function sellAll(silent = false) {
-  if (S.flaschen <= 0) { if (!silent) toast("Keine Flaschen im Gepäck!", "red"); return; }
+  if (S.flaschen <= 0) { if (!silent) toast("Keine Flaschen im Gepäck!", "red"); return 0; }
   const n = S.flaschen;
   const value = +(n * sellPrice()).toFixed(2);
   S.flaschen = 0;
   addGeld(value);
-  addXp(Math.ceil(n * 0.1));
+  addXp(Math.ceil(n * B.xp.sellPerBottle));
   if (S.kurs >= 0.40) S.soldHighKurs = true;
   questProgress("verkaufen", value);
   if (!silent) {
@@ -511,6 +593,7 @@ function sellAll(silent = false) {
   }
   checkAchievements();
   save();
+  return value;
 }
 
 /* ---------------- Betteln ---------------- */
@@ -518,26 +601,36 @@ function sellAll(silent = false) {
 let combo = 0;
 let lastBeg = 0;
 
+let lastEmptyToast = 0;
+
 function beg(ev) {
   const now = Date.now();
-  if (now - lastBeg < 1600) combo = Math.min(50, combo + 1);
+  if (S.energy < 1) {
+    if (now - lastEmptyToast > 3000) {
+      lastEmptyToast = now;
+      toast("😮‍💨 Ausgepowert! Deine Energie lädt sich langsam wieder auf.", "red");
+    }
+    return;
+  }
+  S.energy -= 1;
+  if (now - lastBeg < B.beg.comboWindowMs) combo = Math.min(B.beg.comboMax, combo + 1);
   else combo = 0;
   lastBeg = now;
   S.maxCombo = Math.max(S.maxCombo, combo);
 
-  const mult = 1 + combo * 0.04;
+  const mult = 1 + combo * B.beg.comboStep;
   let gain = begValue() * mult;
   let crit = false;
-  if (Math.random() < 0.04) {
+  if (Math.random() < B.beg.critChance) {
     crit = true;
-    gain *= 20 + Math.random() * 15;
+    gain *= B.beg.critMin + Math.random() * (B.beg.critMax - B.beg.critMin);
     toast("💥 " + BEG_CRITS[Math.floor(Math.random() * BEG_CRITS.length)], "gold");
     vibrate([30, 40, 60]);
   }
   gain = +gain.toFixed(2);
   addGeld(gain);
   S.begToday += gain;
-  addXp(0.3);
+  addXp(B.beg.xpPerTap);
   questProgress("betteln", 1);
 
   const x = ev.clientX, y = ev.clientY;
@@ -547,10 +640,12 @@ function beg(ev) {
 }
 
 function comboTick() {
-  if (combo > 0 && Date.now() - lastBeg > 1600) combo = 0;
-  const pct = (combo / 50) * 100;
+  if (combo > 0 && Date.now() - lastBeg > B.beg.comboWindowMs) combo = 0;
+  const pct = (combo / B.beg.comboMax) * 100;
   $("combo-bar").style.width = pct + "%";
-  $("combo-label").textContent = "Combo x" + (1 + combo * 0.04).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  $("combo-label").textContent = "Combo x" + (1 + combo * B.beg.comboStep).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  $("energy-bar").style.width = Math.min(100, (S.energy / maxEnergy()) * 100) + "%";
+  $("energy-label").textContent = `⚡ ${Math.floor(S.energy)}/${maxEnergy()}`;
 }
 
 /* ---------------- Shop ---------------- */
@@ -617,18 +712,20 @@ function buyGen(id) {
   save();
 }
 
-// Kolonne verkauft direkt am Automaten: Flaschen/s × Kurs = €/s
+// Zeitbasierte Ressourcen: Kolonne verkauft direkt am Automaten
+// (Flaschen/s × Kurs = €/s), Bettel-Energie regeneriert.
 function genTick() {
   const now = Date.now();
   const dt = (now - S.lastGenTick) / 1000;
   S.lastGenTick = now;
   if (dt <= 0 || dt > 120) return; // lange Lücken übernimmt applyOffline
+  S.energy = Math.min(maxEnergy(), S.energy + dt * energyRegen());
   const rate = kolonneRate();
   if (rate <= 0) return;
   const bottles = rate * dt;
   addGeld(bottles * sellPrice());
   S.totalFlaschen += bottles;
-  addXp(bottles * 0.05);
+  addXp(bottles * B.kolonne.xpPerBottle);
   questProgress("sammeln", bottles);
 }
 
@@ -706,7 +803,7 @@ function doPrestige() {
     begToday: S.begToday,
   };
   S = Object.assign(defaultState(), keep);
-  if (tal("start") > 0) S.geld = 100 * Math.pow(4, tal("start") - 1);
+  if (tal("start") > 0) S.geld = B.talents.startCapitalBase * Math.pow(B.talents.startCapitalGrowth, tal("start") - 1);
   toast(`⭐ Neuanfang! +${gain} Respekt – gib sie im Talentbaum aus (Skills-Tab).`, "gold");
   checkAchievements();
   renderAll();
@@ -728,7 +825,7 @@ function genQuests() {
   const all = [
     { type: "sammeln",   target: Math.max(20, Math.round(bpm * 20 / 5) * 5), reward: reward(1) },
     { type: "verkaufen", target: Math.max(5, Math.round(bpm * 20 * sellPrice())), reward: reward(1) },
-    { type: "betteln",   target: Math.min(300, 40 + S.level * 3), reward: reward(0.8) },
+    { type: "betteln",   target: Math.min(150, 30 + S.level * 2), reward: reward(0.8) },
     { type: "touren",    target: 3, reward: reward(1.2) },
   ];
   // 3 zufällige, verschiedene Aufgaben
@@ -763,7 +860,9 @@ function checkDaily() {
   S.streak.best = Math.max(S.streak.best, S.streak.count);
   S.begToday = 0;
   genQuests();
-  const reward = +(5 * S.streak.count * (1 + S.level / 10) * globalMult()).toFixed(2);
+  // Basis + Anteil am passiven Einkommen, damit der Daily nie wertlos wird
+  const reward = +(B.daily.basePerStreakTag * S.streak.count * (1 + S.level / 10) * globalMult()
+    + kolonneIncome() * B.daily.kolonneSec * (1 + B.daily.kolonneStreakBonus * S.streak.count)).toFixed(2);
   addGeld(reward);
   showModal("🗓️ Täglicher Bonus",
     `<b>Tag ${S.streak.count}</b> deiner Streak!<span class="big">+${fmtGeld(reward)}</span>` +
@@ -842,11 +941,12 @@ function applyOffline() {
     if (income > 0.01) {
       addGeld(income);
       S.totalFlaschen += bottles;
-      addXp(bottles * 0.05);
+      addXp(bottles * B.kolonne.xpPerBottle);
       report.push(`👥 Deine Kolonne hat verkauft: <b>+${fmtGeld(income)}</b>`);
     }
   }
   S.lastGenTick = now;
+  S.energy = Math.min(maxEnergy(), S.energy + offlineSecTotal * energyRegen());
 
   if (report.length > 0) {
     showModal("👋 Willkommen zurück!", report.join("<br><br>"));
@@ -909,11 +1009,13 @@ function renderMissionOptions() {
   MISSIONS.forEach((m, i) => {
     const dur = missionDuration(m.sec);
     const est = Math.floor((bottlesPerMin() / 60) * m.bonus * dur);
+    const overflow = est > capacity() - S.flaschen && tal("autosell") < 1;
     const btn = document.createElement("button");
     btn.className = "mission-opt";
+    if (overflow) btn.title = "Mehr als ins Gepäck passt – Überschuss verfällt! Erst verkaufen oder Stauraum kaufen.";
     btn.innerHTML = `<span class="m-name">${m.name}</span>
       <span class="m-time">⏱️ ${fmtDur(dur)}</span>
-      <span class="m-yield">≈ ${fmtNum(est)} 🍾</span>`;
+      <span class="m-yield${overflow ? " warn" : ""}">≈ ${fmtNum(est)} 🍾${overflow ? " ⚠️" : ""}</span>`;
     btn.onclick = () => startMission(i);
     wrap.appendChild(btn);
   });
@@ -1239,6 +1341,10 @@ function migrate(d) {
       }
     }
   }
+  if (d.version < 3) {
+    d.version = 3;
+    d.energy = BALANCE.beg.energyMax; // Bettel-Energie ist neu → volle Leiste
+  }
   return d;
 }
 
@@ -1344,7 +1450,12 @@ function init() {
   });
 
   // Debug-/Test-API (bewusst schlicht)
-  window.PF = { state: () => S, cheat(fn) { fn(S); renderAll(); } };
+  window.PF = {
+    state: () => S,
+    balance: () => BALANCE,
+    cheat(fn) { fn(S); renderAll(); },
+    collect(n) { collectBottles(n); renderAll(); },
+  };
 }
 
 document.addEventListener("DOMContentLoaded", init);
