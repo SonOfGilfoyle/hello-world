@@ -11,7 +11,8 @@ Der Spielstand liegt im `localStorage` deines Browsers.
 ## 🎮 Features
 
 - **Sammel-Touren** mit echten Timern (30 Sekunden bis 8 Stunden) – längere
-  Touren bringen mehr Flaschen pro Minute, mit Zufalls-Events unterwegs
+  Touren bringen mehr Flaschen pro Minute, mit ~80 handgeschriebenen
+  Zufalls-Events unterwegs, davon je ein eigener Event-Pool pro Revier
 - **Sammel-Kolonne** 👥 – rekrutiere Kumpels, Bollerwagen-Crews, Drohnen, einen
   Recyclinghof, am Ende eine eigene Brauerei und die börsennotierte PFAND AG.
   Passives Einkommen rund um die Uhr, alle 25 Einheiten verdoppelt sich die Produktion

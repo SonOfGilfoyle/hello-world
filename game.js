@@ -203,19 +203,133 @@ const ACHIEVEMENTS = [
   { id: "kreislauf", icon: "🍺", name: "Kreislaufwirtschaft", desc: "Besitze eine eigene Brauerei",   reward: 5e6,  cond: s => (s.generators.brauerei || 0) >= 1 },
 ];
 
+/* Generische Tour-Events – laufen überall. Optional:
+   bottles/geld = Bonus-Range, needsDog / needsGens = Bedingung */
 const MISSION_EVENTS = [
-  { txt: "Du durchwühlst einen Mülleimer. Riecht nach Döner.", w: 20 },
-  { txt: "Ein Passant schaut dich mitleidig an. Egal, weiter.", w: 15 },
+  { txt: "Du durchwühlst einen Mülleimer. Riecht nach Döner. Und nach Entscheidungen.", w: 18 },
+  { txt: "Ein Passant schaut dich mitleidig an. Du schaust mitleidig zurück – er hat gleich ein Meeting.", w: 14 },
   { txt: "Jackpot! Ein ganzer Kasten Leergut hinterm Kiosk!", w: 6, bottles: [8, 25] },
-  { txt: "Party-Überreste im Park – Flaschen ohne Ende!", w: 6, bottles: [5, 15] },
-  { txt: "Du findest einen zerknüllten Schein im Gebüsch!", w: 5, geld: [2, 15] },
-  { txt: "Ein Student schenkt dir sein restliches Sixpack (leer).", w: 8, bottles: [4, 6] },
-  { txt: "Dein Hund erschnüffelt eine Flaschen-Goldader!", w: 4, bottles: [10, 30], needsDog: true },
-  { txt: "Regen setzt ein. Du ziehst die Kapuze tiefer.", w: 12 },
-  { txt: "Möwe klaut dir fast ein Brötchen. Frechheit.", w: 10 },
+  { txt: "Party-Überreste im Park – Flaschen ohne Ende. Und ein einzelner Schuh. Warum immer ein einzelner Schuh?", w: 6, bottles: [5, 15] },
+  { txt: "Du findest einen zerknüllten Schein im Gebüsch. Riecht komisch, zählt trotzdem.", w: 5, geld: [2, 15] },
+  { txt: "Ein Student schenkt dir sein restliches Sixpack (leer). „Ehrenmann“, sagt er. Du nickst weise.", w: 8, bottles: [4, 6] },
+  { txt: "Regen setzt ein. Deine Jacke ist wasserdicht. Also: war mal. Also: nie.", w: 10 },
+  { txt: "Möwe klaut dir fast ein Brötchen. Ihr schreit euch an. Die Möwe gewinnt.", w: 9 },
   { txt: "Du findest eine „Rolex“ (aus dem Kaugummiautomaten). Trotzdem was wert!", w: 2, geld: [20, 60] },
-  { txt: "Flaschensammler-Kollege nickt dir respektvoll zu.", w: 10 },
+  { txt: "Flaschensammler-Kollege nickt dir respektvoll zu. Kein Wort. Alles gesagt.", w: 9 },
   { txt: "Ein TikToker filmt dich für seinen „Streetlife“-Kanal und drückt dir was in die Hand.", w: 3, geld: [10, 40] },
+  { txt: "Öffentliche Toilette: 1 €. Gebüsch: kostenlos. Du bist schließlich Unternehmer.", w: 8 },
+  { txt: "Halbe Pizza auf dem Karton. Hawaii. Du hast Standards. Du isst sie trotzdem.", w: 8 },
+  { txt: "Ein Betrunkener will mit dir philosophieren. Nach zehn Minuten hat er recht und du seine Flasche.", w: 7, bottles: [1, 3] },
+  { txt: "Ein Rentner mit Rollator überholt dich auf der Sammelroute. Respekt und Scham, ein Gefühl.", w: 7 },
+  { txt: "Du findest ein Portemonnaie und gibst es ab. Finderlohn! Karma zahlt bar.", w: 3, geld: [5, 20] },
+  { txt: "Der Pfandautomat spuckt den Bon aus wie eine Beleidigung. Du steckst ihn ein wie einen Scheck.", w: 7 },
+  { txt: "Eine Taube starrt dich an, als wüsstest du ihr was schuldig. Vielleicht stimmt das.", w: 8 },
+  { txt: "Du testest neue Pappschild-Sprüche. „Für Bier – wenigstens lüg ich nicht.“ Läuft.", w: 6, geld: [1, 5] },
+  { txt: "Kippenstummel-Bingo vorm Späti. Du gewinnst. Der Preis ist Husten.", w: 7 },
+  { txt: "Dein Hund erschnüffelt eine Flaschen-Goldader!", w: 4, bottles: [10, 30], needsDog: true },
+  { txt: "Dein Hund pinkelt an einen E-Scooter. Du gibst ihm ein Leckerli. Prinzipien sind Prinzipien.", w: 6, needsDog: true },
+  { txt: "Einer deiner Sammel-Kumpel ruft an: „Chef, wir haben den Glascontainer … befreit.“ Du fragst nicht nach.", w: 5, bottles: [10, 25], needsGens: true },
+  { txt: "Kolonnen-Meeting am Kiosk. Tagesordnung: Wer kriegt die Route am Späti? Es eskaliert herzlich.", w: 5, needsGens: true },
+];
+
+/* Revier-Events – jedes Revier hat seinen eigenen Sound.
+   Key = Distrikt-Name bzw. Basis-Name der prozeduralen Reviere. */
+const DISTRICT_EVENTS = {
+  "Vorstadt": [
+    { txt: "Ein Reihenhausbesitzer wässert seinen Rasen und dich gleich mit. „Tschuldigung“ sagt er nicht.", w: 8 },
+    { txt: "Gelber Sack aufgeplatzt. Für andere Müll, für dich ein Buffet mit Selbstbedienung.", w: 7, bottles: [3, 8] },
+    { txt: "Die Nachbarschafts-WhatsApp-Gruppe hat dich gemeldet. Als was, weiß keiner so genau.", w: 8 },
+    { txt: "Kindergeburtstag entsorgt Capri-Sonnen. Kein Pfand, aber du trinkst die Reste. Kirsche. Stark.", w: 7 },
+    { txt: "Ein Rentner erklärt dir 45 Minuten das Pfandsystem. Du kennst es. Er auch. Er zahlt Vortragshonorar.", w: 5, geld: [1, 4] },
+  ],
+  "Bahnhofsviertel": [
+    { txt: "Der Späti-Mann legt dir wortlos zwei Flaschen raus. Ehre unter Geschäftsleuten.", w: 7, bottles: [2, 4] },
+    { txt: "Ein Junggesellenabschied zieht durch. Was die zurücklassen, bringt einen Pfandautomaten zum Weinen. Vor Freude.", w: 6, bottles: [8, 20] },
+    { txt: "Der Bahnhofsklo-Wärter kennt dich beim Namen. Du weißt nicht, ob das gut ist.", w: 8 },
+    { txt: "Jemand kotzt haarscharf neben deinen Beutel. Knapp daneben ist auch vorbei. Glück gehabt.", w: 7 },
+    { txt: "Ein Taschendieb versucht’s bei dir. Ihr lacht beide. Dann gibt er dir zwei Euro.", w: 5, geld: [2, 5] },
+  ],
+  "Uni-Campus": [
+    { txt: "Erstsemester-Party! Die BWLer werfen Flaschen weg, für deren Pfand sie später Excel-Kurse geben.", w: 6, bottles: [6, 18] },
+    { txt: "Ein Philosophie-Student erklärt dir, dass Besitz Diebstahl ist. Sein MacBook glänzt dabei stolz.", w: 8 },
+    { txt: "Du hältst einen Gastvortrag: „Pfandwirtschaft in der Praxis“. Also: Du redest laut im Foyer. Es regnet Münzen.", w: 5, geld: [2, 8] },
+    { txt: "Flunkyball-Turnier auf der Wiese. Du wartest am Spielfeldrand wie ein Geier mit Fachwissen.", w: 6, bottles: [5, 12] },
+    { txt: "Eine Soziologie-Studentin interviewt dich für ihre Bachelorarbeit. Honorar: ein Mensa-Bon und Kleingeld.", w: 5, geld: [3, 6] },
+  ],
+  "Innenstadt": [
+    { txt: "Ein Anzugträger telefoniert so laut über seinen Bonus, dass du aus Prinzip direkt vor ihm sammelst.", w: 8 },
+    { txt: "Glühweintassen-Niveau an Flaschen – und es ist nicht mal Dezember. Du stellst keine Fragen.", w: 6, bottles: [5, 15] },
+    { txt: "Der Kaufhaus-Detektiv folgt dir unauffällig. Du führst ihn dreimal um den Brunnen. Kardiotraining für euch beide.", w: 8 },
+    { txt: "Ein Straßenmusiker spielt Wonderwall. Du kassierst Mitleids-Münzen, die eigentlich ihm galten.", w: 5, geld: [2, 6] },
+    { txt: "Eine Demo zieht vorbei. Wofür, bleibt unklar – aber danach liegen da zweihundert Flaschen.", w: 5, bottles: [10, 25] },
+  ],
+  "Hafenviertel": [
+    { txt: "Die Matrosen-Kneipe kippt ihr Leergut raus. Der Wirt nickt dir zu wie einem Kollegen.", w: 6, bottles: [8, 20] },
+    { txt: "Eine Möwen-Gang hat dein Revier übernommen. Die Verhandlungen kosten dich ein halbes Fischbrötchen.", w: 8 },
+    { txt: "Containerschiff-Crew feiert Landgang. Was Seeleute wegtrinken, ist dein Quartalsergebnis.", w: 5, bottles: [10, 30] },
+    { txt: "Du findest eine Buddel mit Zettel: „Hilfe, ich bin im Hafenviertel gefangen.“ Same.", w: 7 },
+    { txt: "Ein Angler zeigt dir seinen Fang: ein Stiefel. Du zeigst ihm deinen: zwölf Flaschen. Du gewinnst.", w: 6, bottles: [4, 12] },
+  ],
+  "Stadion & Festwiese": [
+    { txt: "Abpfiff! Zehntausend Fans, null Mülltrennung. Für dich regnet es flüssiges Gold in Glasform.", w: 6, bottles: [15, 40] },
+    { txt: "Ein Fan im Trikot weint wegen der Niederlage. Du hältst tröstend seine Flasche. Und behältst sie.", w: 7, bottles: [1, 3] },
+    { txt: "Die VIP-Security schaut demonstrativ weg. Du warst nie hier. Die Sektflaschen auch nicht.", w: 5, bottles: [8, 20] },
+    { txt: "Der Bratwurst-Standler schenkt dir eine „aus Versehen“. Die Ehre der Festwiese.", w: 7 },
+    { txt: "Public Viewing, Elfmeterschießen, verloren. Trauer-Flaschen zählen doppelt.", w: 5, bottles: [10, 30] },
+  ],
+  "Szeneviertel": [
+    { txt: "Ein Hipster erklärt dir, Flaschensammeln sei „eigentlich total zero waste“. Er zahlt 9 € für Hafermilch-Latte.", w: 8 },
+    { txt: "Vernissage! Der Wein ist bio, die Gespräche sind es nicht. Die Flaschen gehören dir.", w: 6, bottles: [6, 15] },
+    { txt: "Eine Band lädt Equipment aus und dich zum Soundcheck ein. Du bleibst für den Pfand. Und ein bisschen für die Musik.", w: 6, bottles: [3, 8] },
+  ],
+  "Messegelände": [
+    { txt: "Start-up-Messe: Jeder Stand hat Freibier und niemand ein Geschäftsmodell.", w: 6, bottles: [8, 20] },
+    { txt: "Du bekommst versehentlich ein Messebändchen. Heute bist du „Fachbesucher“. Das Buffet zahlt Dividende.", w: 5, geld: [5, 15] },
+    { txt: "Ein Keynote-Speaker sagt vierzehnmal „Disruption“. Du disruptierst derweil den lokalen Leergut-Markt.", w: 7, bottles: [5, 12] },
+  ],
+  "Flughafen-Terminal": [
+    { txt: "Duty-Free-Tüte im Mülleimer: leere Wodkaflasche, kein Pfand – aber daneben liegt ein Fünfer.", w: 6, geld: [3, 8] },
+    { txt: "Ein Gestrandeter schläft am Gate wie du auf der Parkbank. Du fühlst dich überlegen. Er hat Lounge-Zugang. Egal.", w: 8 },
+    { txt: "Die Security beäugt deinen Einkaufswagen. „Handgepäck“, sagst du. Keiner lacht. Du darfst trotzdem bleiben.", w: 6, bottles: [3, 10] },
+  ],
+  "Kreuzfahrt-Hafen": [
+    { txt: "Dreitausend Rentner strömen von Bord und kaufen Magnete. Ihre Sektflaschen bleiben auf Deck 4. Du kennst einen Steward.", w: 6, bottles: [10, 25] },
+    { txt: "Ein Kapitän wirft eine Münze in deinen Becher und salutiert. Du salutierst zurück. Würde.", w: 6, geld: [2, 5] },
+    { txt: "Das Schiffshorn erschreckt dich in einen Busch. Im Busch: sechs Flaschen. Schicksal.", w: 6, bottles: [4, 8] },
+  ],
+  "Olympiapark": [
+    { txt: "Marathon-Tag! Zehntausend Iso-Flaschen, und du bist der Einzige mit Ausdauer im Ziel.", w: 6, bottles: [12, 30] },
+    { txt: "Ein Personal Trainer bietet dir ein Probetraining an. Du hebst wortlos deinen Sammelsack. Er nickt anerkennend.", w: 7 },
+    { txt: "Siegerehrung im Kleinformat: Du stehst ganz oben. Auf dem Glascontainer.", w: 6, bottles: [5, 12] },
+  ],
+  "Banken-Distrikt": [
+    { txt: "Ein Investmentbanker entsorgt eine Champagnerflasche. Pfandwert: null. Sein Gewissen: auch. Er gibt dir einen Zehner.", w: 5, geld: [8, 15] },
+    { txt: "Zwei Anzüge streiten, wer das Meeting „ownt“. Du ownst derweil ihre Wasserflaschen.", w: 7, bottles: [3, 8] },
+    { txt: "After-Work auf der Dachterrasse. Der Aufzug braucht eine Karte. Der Müllraum nicht.", w: 6, bottles: [8, 18] },
+  ],
+  "Vergnügungspark": [
+    { txt: "Nach dem Looping lassen alle ihre Getränke stehen. Die Physik ist dein Geschäftspartner.", w: 6, bottles: [6, 15] },
+    { txt: "Ein Maskottchen umarmt dich ungefragt. Ihr tauscht Leidensgeschichten. Es steckt dir was zu.", w: 6, geld: [4, 8] },
+    { txt: "Du gewinnst am Dosenwerfen. Der Standbetreiber ahnt nicht, dass du auch die Dosen willst.", w: 7, bottles: [3, 6] },
+  ],
+  "Mega-Festival": [
+    { txt: "Tag 3, Zeltplatz: Was hier rumsteht, würde ein Logistikzentrum auslasten. Du weinst fast vor Glück.", w: 6, bottles: [20, 50] },
+    { txt: "Ein Festivalgänger tauscht zehn Flaschen gegen dein Feuerzeug. Bester Deal deines Lebens.", w: 6, bottles: [8, 12] },
+    { txt: "Der Headliner bedankt sich „bei den echten Helden“. Du fühlst dich angesprochen. Zu Recht.", w: 7 },
+  ],
+};
+
+function districtKey(i) {
+  if (i < DISTRICTS.length) return DISTRICTS[i].name;
+  return PROC_DISTRICTS[(i - DISTRICTS.length) % PROC_DISTRICTS.length][0];
+}
+
+const TOUR_START_LINES = [
+  d => `${d.emoji} Beutel geschnappt, Würde geparkt – auf nach ${d.name}!`,
+  d => `${d.emoji} Du ziehst los. ${d.name} weiß noch nicht, was gleich passiert.`,
+  d => `${d.emoji} Dienstbeginn in ${d.name}. Der Chef bist du. Der Praktikant leider auch.`,
+  d => `${d.emoji} ${d.name} ruft. Genauer gesagt: die Mülleimer von ${d.name}.`,
+  d => `${d.emoji} Route geplant, Rücken gerade – ${d.name}, es ist Pfandzeit.`,
 ];
 
 const BEG_CRITS = [
@@ -223,6 +337,14 @@ const BEG_CRITS = [
   "Eine Oma steckt dir „für was Warmes“ einen Schein zu!",
   "Ein Banker mit schlechtem Gewissen leert sein Portemonnaie!",
   "Dein Pappschild-Spruch geht viral!",
+  "Ein Junggesellenabschied adoptiert dich für eine Stunde als Maskottchen!",
+  "Jemand will dein Kleingeld „in Krypto investieren“. Du lehnst ab. Er zahlt Respekt-Aufschlag!",
+  "Eine Kirchengruppe übt Nächstenliebe. An dir. Alle gleichzeitig!",
+  "Ein Promi steigt aus der Limo und braucht dringend ein Foto „mit echten Menschen“!",
+  "Du machst den Hundeblick. Es funktioniert. Es funktioniert immer!",
+  "Falscher Fuffziger im Becher! Der Späti nimmt ihn trotzdem!",
+  "Eine Schulklasse sammelt „für einen guten Zweck“. Der Lehrer entscheidet: Du bist der Zweck!",
+  "Silvester-Stimmung im Juli: Jemand wirft dir „Glücksgeld“ zu und rennt weg!",
 ];
 
 const QUEST_META = {
@@ -478,7 +600,7 @@ function startMission(idx) {
     name: m.name,
     extraB: 0,
     extraG: 0,
-    log: [`${districtDef(S.district).emoji} Du ziehst los: ${m.name} in ${districtDef(S.district).name}.`],
+    log: [TOUR_START_LINES[Math.floor(Math.random() * TOUR_START_LINES.length)](districtDef(S.district))],
     lastEvent: Date.now(),
   };
   renderMissionState();
@@ -546,7 +668,8 @@ function missionEventTick() {
   const now = Date.now();
   if (now - mi.lastEvent < 8000 + Math.random() * 12000) return;
   mi.lastEvent = now;
-  const pool = MISSION_EVENTS.filter(e => !e.needsDog || S.items.hund > 0);
+  const pool = [...MISSION_EVENTS, ...(DISTRICT_EVENTS[districtKey(S.district)] || [])]
+    .filter(e => (!e.needsDog || S.items.hund > 0) && (!e.needsGens || totalGens(S) > 0));
   const totalW = pool.reduce((a, e) => a + e.w, 0);
   let r = Math.random() * totalW;
   let ev = pool[0];
@@ -1455,6 +1578,7 @@ function init() {
     balance: () => BALANCE,
     cheat(fn) { fn(S); renderAll(); },
     collect(n) { collectBottles(n); renderAll(); },
+    forceEvent() { if (S.mission) { S.mission.lastEvent = 0; missionEventTick(); } },
   };
 }
 
