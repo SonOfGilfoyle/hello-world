@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<title>PFANDLORD – Vom Penner zur Legende</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍾</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="stat" id="stat-geld" title="Bargeld">
+    <span class="stat-icon">💶</span><span class="stat-val" id="geld-val">0,00 €</span>
+  </div>
+  <div class="stat" id="stat-flaschen" title="Flaschen im Gepäck">
+    <span class="stat-icon">🍾</span><span class="stat-val" id="flaschen-val">0/30</span>
+  </div>
+  <div class="stat" id="stat-respekt" title="Respekt (Prestige-Bonus)" style="display:none">
+    <span class="stat-icon">⭐</span><span class="stat-val" id="respekt-val">0</span>
+  </div>
+</header>
+
+<div id="levelbar-wrap" title="Level-Fortschritt">
+  <div id="levelbar"></div>
+  <span id="level-label">Level 1</span>
+</div>
+
+<main id="content">
+
+  <!-- ===== SAMMELN ===== -->
+  <section class="tab-panel" id="tab-sammeln">
+    <div class="card">
+      <h2>🗺️ Revier</h2>
+      <div id="district-list"></div>
+    </div>
+
+    <div class="card" id="mission-card">
+      <h2>🍾 Flaschen sammeln</h2>
+      <div id="mission-idle">
+        <p class="hint">Wähl 'ne Tour. Länger unterwegs = mehr Flaschen pro Minute.</p>
+        <div id="mission-options"></div>
+      </div>
+      <div id="mission-active" style="display:none">
+        <div class="mission-head">
+          <span id="mission-name">Tour läuft…</span>
+          <span id="mission-timer" class="mono">0:00</span>
+        </div>
+        <div class="progress-outer"><div class="progress-inner" id="mission-progress"></div></div>
+        <div class="mission-live">
+          <span>🍾 <b id="mission-bottles">0</b> gefunden</span>
+        </div>
+        <div id="mission-log"></div>
+        <button class="btn btn-danger btn-small" id="mission-abort">Abbrechen (50 % der Beute)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>♻️ Pfandautomat</h2>
+      <div class="kurs-row">
+        <span>Pfandkurs:</span>
+        <span id="kurs-val" class="mono">0,25 €</span>
+        <span id="kurs-trend">➡️</span>
+      </div>
+      <p class="hint">Der Kurs schwankt – verkauf, wenn er hoch steht! 📈</p>
+      <button class="btn btn-primary" id="btn-sell">Alles verkaufen</button>
+      <div class="sell-preview hint" id="sell-preview"></div>
+    </div>
+  </section>
+
+  <!-- ===== BETTELN ===== -->
+  <section class="tab-panel" id="tab-betteln" style="display:none">
+    <div class="card center">
+      <h2>🤲 Schnorren</h2>
+      <p class="hint">Tippen, tippen, tippen. Combo hochhalten für Multiplikator!</p>
+      <div id="combo-wrap">
+        <div class="progress-outer"><div class="progress-inner combo" id="combo-bar"></div></div>
+        <span id="combo-label">Combo x1,0</span>
+      </div>
+      <button id="beg-btn">🤲<br><span>„Haste mal 'n Euro?"</span></button>
+      <div class="beg-stats hint">
+        Heute erschnorrt: <b id="beg-total">0,00 €</b>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SHOP ===== -->
+  <section class="tab-panel" id="tab-shop" style="display:none">
+    <div class="card">
+      <h2>🛒 Ausrüstung</h2>
+      <p class="hint">Besseres Equipment = mehr Flaschen, mehr Platz, mehr Style.</p>
+      <div id="shop-list"></div>
+    </div>
+  </section>
+
+  <!-- ===== SKILLS ===== -->
+  <section class="tab-panel" id="tab-skills" style="display:none">
+    <div class="card">
+      <h2>📚 Weiterbildung</h2>
+      <p class="hint">Ein Kurs gleichzeitig. Läuft auch weiter, wenn du offline bist.</p>
+      <div id="training-active" style="display:none">
+        <div class="mission-head">
+          <span id="training-name"></span>
+          <span id="training-timer" class="mono"></span>
+        </div>
+        <div class="progress-outer"><div class="progress-inner training" id="training-progress"></div></div>
+      </div>
+      <div id="skill-list"></div>
+    </div>
+  </section>
+
+  <!-- ===== PROFIL ===== -->
+  <section class="tab-panel" id="tab-profil" style="display:none">
+    <div class="card">
+      <h2>👤 <span id="profil-title">Flaschensammler</span></h2>
+      <div id="profil-stats"></div>
+    </div>
+    <div class="card">
+      <h2>🏆 Erfolge</h2>
+      <div id="achievement-list"></div>
+    </div>
+    <div class="card" id="prestige-card">
+      <h2>⭐ Neuanfang mit Respekt</h2>
+      <p class="hint">Ab Level 25: Fang von vorn an und kassiere <b>Respekt</b> –
+      jeder Punkt gibt dauerhaft <b>+3 % auf alles</b>.</p>
+      <div id="prestige-info"></div>
+      <button class="btn btn-primary" id="btn-prestige">Neuanfang</button>
+    </div>
+    <div class="card">
+      <h2>⚙️ Spielstand</h2>
+      <div class="row-buttons">
+        <button class="btn btn-small" id="btn-export">Exportieren</button>
+        <button class="btn btn-small" id="btn-import">Importieren</button>
+        <button class="btn btn-small btn-danger" id="btn-reset">Löschen</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<nav id="tabbar">
+  <button class="tab-btn active" data-tab="sammeln"><span>🍾</span>Sammeln</button>
+  <button class="tab-btn" data-tab="betteln"><span>🤲</span>Betteln</button>
+  <button class="tab-btn" data-tab="shop"><span>🛒</span>Shop<i class="badge" id="badge-shop"></i></button>
+  <button class="tab-btn" data-tab="skills"><span>📚</span>Skills<i class="badge" id="badge-skills"></i></button>
+  <button class="tab-btn" data-tab="profil"><span>👤</span>Profil<i class="badge" id="badge-profil"></i></button>
+</nav>
+
+<div id="toast-wrap"></div>
+<div id="particle-layer"></div>
+
+<div id="modal-backdrop" style="display:none">
+  <div id="modal">
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+    <button class="btn btn-primary" id="modal-close">Nice!</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
