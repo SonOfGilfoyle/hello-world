@@ -67,6 +67,7 @@
         <span>Pfandkurs:</span>
         <span id="kurs-val" class="mono">0,25 €</span>
         <span id="kurs-trend">➡️</span>
+        <canvas id="kurs-spark" width="90" height="26"></canvas>
       </div>
       <p class="hint">Der Kurs schwankt – verkauf, wenn er hoch steht! 📈</p>
       <button class="btn btn-primary" id="btn-sell">Alles verkaufen</button>
@@ -149,6 +150,10 @@
 
   <!-- ===== PROFIL ===== -->
   <section class="tab-panel" id="tab-profil" style="display:none">
+    <div class="card center" id="avatar-card">
+      <div id="avatar-box"></div>
+      <div id="avatar-caption" class="hint"></div>
+    </div>
     <div class="card">
       <h2>👤 <span id="profil-title">Flaschensammler</span></h2>
       <div id="profil-stats"></div>
@@ -165,8 +170,9 @@
       <button class="btn btn-primary" id="btn-prestige">Neuanfang</button>
     </div>
     <div class="card">
-      <h2>⚙️ Spielstand</h2>
+      <h2>⚙️ Einstellungen & Spielstand</h2>
       <div class="row-buttons">
+        <button class="btn btn-small" id="btn-sound">🔊 Sound an</button>
         <button class="btn btn-small" id="btn-export">Exportieren</button>
         <button class="btn btn-small" id="btn-import">Importieren</button>
         <button class="btn btn-small btn-danger" id="btn-reset">Löschen</button>
@@ -187,6 +193,8 @@
 
 <div id="toast-wrap"></div>
 <div id="particle-layer"></div>
+<canvas id="fx-canvas"></canvas>
+<div id="flash"></div>
 
 <div id="modal-backdrop" style="display:none">
   <div id="modal">

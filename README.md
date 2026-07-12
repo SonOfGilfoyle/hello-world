@@ -28,6 +28,13 @@ Der Spielstand liegt im `localStorage` deines Browsers.
 - **Tagesaufgaben** 📋 und **Daily-Login-Streak** mit wachsenden Belohnungen
 - **Offline-Fortschritt** – Kolonne, Touren (mit Dauerläufer-Talent) und
   Training laufen weiter, während du weg bist
+- **Glücksfund** 🎁 – taucht unvorhersehbar auf und verschwindet schnell
+  wieder (Variable-Ratio-Belohnung, skaliert mit deinem Einkommen)
+- **Dein Avatar** – eine Figur im Profil, an der du deine komplette
+  Ausrüstung siehst: vom Typ mit Plastiktüte zum Baron mit Königspudel
+- **Sound & Juice** – synthetisierte Sound-Effekte (WebAudio, keine Assets,
+  abschaltbar), Konfetti bei Meilensteinen, Geld-Roll-up, Crit-Flash,
+  Pfandkurs-Sparkline; respektiert `prefers-reduced-motion`
 - Big-Number-Support (Mio./Mrd./Bio. …), Dark Mode, Touch-optimiert,
   Vibrations-Feedback, Spielstand-Export/-Import
 

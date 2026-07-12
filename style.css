@@ -396,6 +396,48 @@ body { display: flex; flex-direction: column; }
   to { opacity: 0; transform: translateY(-70px) scale(1.25); }
 }
 
+/* ---- FX: Konfetti, Flash, Glücksfund, Sparkline, Avatar ---- */
+#fx-canvas {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 95;
+}
+#flash {
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(227, 179, 65, 0.35), transparent 65%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 94;
+}
+#flash.on { animation: flash-anim 0.3s ease-out; }
+@keyframes flash-anim { 15% { opacity: 1; } 100% { opacity: 0; } }
+
+#gift {
+  position: fixed;
+  z-index: 96;
+  font-size: 2.4rem;
+  cursor: pointer;
+  user-select: none;
+  filter: drop-shadow(0 0 10px rgba(227, 179, 65, 0.7));
+  animation: gift-in 0.35s ease, gift-wiggle 0.9s ease-in-out 0.35s infinite;
+}
+@keyframes gift-in { from { transform: scale(0) rotate(-30deg); } 70% { transform: scale(1.25); } }
+@keyframes gift-wiggle {
+  0%, 100% { transform: rotate(-8deg) scale(1); }
+  50% { transform: rotate(8deg) scale(1.08); }
+}
+
+#kurs-spark { margin-left: auto; opacity: 0.9; }
+
+#avatar-card { padding: 10px 14px 8px; }
+#avatar-box svg { width: 100%; max-width: 300px; height: auto; }
+#avatar-caption { margin: 0 0 4px; font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  #gift { animation: none; }
+  .particle { display: none; }
+}
+
 /* ---- Modal ---- */
 #modal-backdrop {
   position: fixed; inset: 0;

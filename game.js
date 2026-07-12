@@ -63,6 +63,9 @@ const BALANCE = {
   xp: { levelBase: 40, levelExp: 1.55, sellPerBottle: 0.1 },
   erfolge: { tierBonus: 0.01 },
   daily: { basePerStreakTag: 5, kolonneSec: 300, kolonneStreakBonus: 0.1 },
+  // Glücksfund: Variable-Ratio-Belohnung – taucht unvorhersehbar auf,
+  // verschwindet schnell wieder (Verknappung), Belohnung skaliert mit Einkommen
+  gift: { minDelaySec: 150, maxDelaySec: 420, lifetimeSec: 25, geldSec: 90, bottleSec: 300 },
 };
 const B = BALANCE;
 
@@ -170,6 +173,15 @@ const TALENTS = {
   lehre:    { emoji: "🎓", name: "Lehrmeister",  desc: "-10 % Trainingszeit pro Stufe",                max: 10, cost: l => 1 + l },
   autotour: { emoji: "🔁", name: "Dauerläufer",  desc: "Touren starten automatisch neu (auch offline)", max: 1, cost: () => 3 },
   autosell: { emoji: "🤖", name: "Verkaufs-Bot", desc: "Verkauft automatisch, sobald das Gepäck voll ist", max: 1, cost: () => 5 },
+};
+
+/* Sichtbare Ausrüstung am Avatar – ein Icon pro Ausbaustufe */
+const AVATAR_ICONS = {
+  beutel:  ["🛍️", "👜", "🎒", "🛒", "🚲", "🚐"],
+  hund:    ["",   "🐕", "🐶", "🦮", "🐕‍🦺", "🐩"],
+  radar:   ["",   "🔦", "🗜️", "🧲", "📱", "🛸"],
+  scooter: ["",   "🛹", "🚲", "🛴", "🚵", "🚀"],
+  lager:   ["🪑", "🛌", "⛺", "🚚", "🏠", "🏡"],
 };
 
 const TITLES = [
@@ -390,6 +402,8 @@ function defaultState() {
     quests: null,    // {date, list:[{type,target,prog,reward,done}]}
     streak: { last: "", count: 0, best: 0 },
     achievements: {},
+    sound: true,
+    kursHist: [0.25],
   };
 }
 
@@ -556,6 +570,108 @@ let userInteracted = false;
 document.addEventListener("pointerdown", () => { userInteracted = true; }, { once: true, capture: true });
 function vibrate(ms) { if (userInteracted && navigator.vibrate) navigator.vibrate(ms); }
 
+const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------------- Sound (WebAudio-Synthese, keine Assets) ---------------- */
+
+let audioCtx = null;
+function ac() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, t0, dur, type = "sine", vol = 0.1) {
+  const c = ac(), o = c.createOscillator(), g = c.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  const t = c.currentTime + t0;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(c.destination);
+  o.start(t);
+  o.stop(t + dur + 0.05);
+}
+const SFX = {
+  tap()     { tone(500 + Math.random() * 100, 0, 0.05, "triangle", 0.05); },
+  coin()    { tone(880, 0, 0.09, "sine", 0.09); tone(1318, 0.06, 0.13, "sine", 0.09); },
+  buy()     { tone(196, 0, 0.08, "square", 0.06); tone(392, 0.07, 0.1, "square", 0.05); },
+  crit()    { [660, 880, 1100, 1320].forEach((f, i) => tone(f, i * 0.055, 0.12, "sine", 0.09)); },
+  level()   { [523, 659, 784].forEach((f, i) => tone(f, i * 0.09, 0.16, "triangle", 0.09)); },
+  quest()   { tone(784, 0, 0.1, "sine", 0.09); tone(988, 0.08, 0.15, "sine", 0.09); },
+  fanfare() { [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, i * 0.09, 0.22, "triangle", 0.1)); },
+  err()     { tone(140, 0, 0.14, "sawtooth", 0.04); },
+};
+function sfx(name) {
+  if (!S.sound || !userInteracted) return;
+  try { SFX[name](); } catch (e) { /* Audio blockiert o. ä. */ }
+}
+
+/* ---------------- FX: Konfetti, Flash, Zahlen-Roll-up ---------------- */
+
+let confetti = [];
+function burst(x, y, n = 36) {
+  if (reduceMotion) return;
+  const colors = ["#e3b341", "#3fb950", "#58a6ff", "#f85149", "#e6edf3"];
+  for (let i = 0; i < n; i++) {
+    confetti.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 9,
+      vy: -3 - Math.random() * 6,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.4,
+      size: 4 + Math.random() * 5,
+      color: colors[i % colors.length],
+      life: 1,
+    });
+  }
+}
+function burstCenter(n) { burst(innerWidth / 2, innerHeight * 0.35, n); }
+
+function stepConfetti(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  confetti = confetti.filter(p => p.life > 0);
+  for (const p of confetti) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.25;
+    p.rot += p.vr; p.life -= 0.016;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+    ctx.restore();
+  }
+}
+
+function flash() {
+  if (reduceMotion) return;
+  const f = $("flash");
+  f.classList.remove("on");
+  void f.offsetWidth;
+  f.classList.add("on");
+}
+
+// Zahlen rollen zum Zielwert statt zu springen (rAF, unabhängig vom Tick)
+let dispGeld = 0, dispFl = 0;
+function fxLoop() {
+  if (reduceMotion) { dispGeld = S.geld; dispFl = S.flaschen; }
+  else {
+    dispGeld += (S.geld - dispGeld) * 0.14;
+    dispFl += (S.flaschen - dispFl) * 0.2;
+    if (Math.abs(S.geld - dispGeld) < 0.005) dispGeld = S.geld;
+    if (Math.abs(S.flaschen - dispFl) < 0.6) dispFl = S.flaschen;
+  }
+  $("geld-val").textContent = fmtGeld(dispGeld);
+  $("flaschen-val").textContent = fmtNum(dispFl) + "/" + fmtNum(capacity());
+  const cv = $("fx-canvas");
+  if (confetti.length > 0 || cv.dataset.dirty === "1") {
+    stepConfetti(cv.getContext("2d"), cv.width, cv.height);
+    cv.dataset.dirty = confetti.length > 0 ? "1" : "0";
+  }
+  requestAnimationFrame(fxLoop);
+}
+
 /* ---------------- Geld / XP / Level ---------------- */
 
 function addGeld(v) {
@@ -575,6 +691,8 @@ function addXp(v) {
   }
   if (leveled) {
     toast(`🎉 Level ${S.level} erreicht!`, "gold");
+    sfx("level");
+    burstCenter(30);
     vibrate(60);
     for (let i = 0; i < 60; i++) {
       const d = districtDef(i);
@@ -696,7 +814,31 @@ function updateKurs() {
   const drift = (Math.random() - 0.5) * B.kurs.drift;
   const pull = (B.kurs.base - S.kurs) * B.kurs.pullback;
   S.kurs = Math.min(B.kurs.max, Math.max(B.kurs.min, S.kurs + drift + pull));
+  S.kursHist.push(+S.kurs.toFixed(3));
+  if (S.kursHist.length > 40) S.kursHist.shift();
   renderKurs();
+}
+
+function drawSparkline() {
+  const cv = $("kurs-spark");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+  const hist = S.kursHist.length > 1 ? S.kursHist : [S.kurs, S.kurs];
+  const min = B.kurs.min, max = B.kurs.max;
+  const px = i => (i / (hist.length - 1)) * (w - 6) + 3;
+  const py = v => h - 3 - ((v - min) / (max - min)) * (h - 6);
+  const up = hist[hist.length - 1] >= hist[Math.max(0, hist.length - 2)];
+  ctx.strokeStyle = up ? "#3fb950" : "#f85149";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  hist.forEach((v, i) => i === 0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
+  ctx.stroke();
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.arc(px(hist.length - 1), py(hist[hist.length - 1]), 2.5, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function sellAll(silent = false) {
@@ -710,6 +852,7 @@ function sellAll(silent = false) {
   questProgress("verkaufen", value);
   if (!silent) {
     toast(`♻️ ${fmtNum(n)} Flaschen verkauft: +${fmtGeld(value)}`);
+    sfx("coin");
     vibrate(30);
     const btn = $("btn-sell").getBoundingClientRect();
     particle("+" + fmtGeld(value), btn.left + btn.width / 2, btn.top);
@@ -748,7 +891,11 @@ function beg(ev) {
     crit = true;
     gain *= B.beg.critMin + Math.random() * (B.beg.critMax - B.beg.critMin);
     toast("💥 " + BEG_CRITS[Math.floor(Math.random() * BEG_CRITS.length)], "gold");
+    sfx("crit");
+    flash();
     vibrate([30, 40, 60]);
+  } else {
+    sfx("tap");
   }
   gain = +gain.toFixed(2);
   addGeld(gain);
@@ -775,10 +922,11 @@ function comboTick() {
 
 function buyItem(key) {
   const cost = itemCost(key, S.items[key]);
-  if (S.geld < cost) { toast("Zu wenig Kohle! 💸", "red"); return; }
+  if (S.geld < cost) { toast("Zu wenig Kohle! 💸", "red"); sfx("err"); return; }
   S.geld -= cost;
   S.items[key]++;
   toast(`${ITEMS[key].emoji} Gekauft: ${itemStageName(key, S.items[key])}!`, "gold");
+  sfx("buy");
   vibrate(40);
   renderShop();
   checkAchievements();
@@ -804,6 +952,7 @@ function completeTraining(silent = false) {
   S.skills[t.skill]++;
   if (!silent) {
     toast(`📚 ${SKILLS[t.skill].name} auf Stufe ${S.skills[t.skill]}!`, "gold");
+    sfx("quest");
     vibrate(40);
   }
   renderSkills();
@@ -817,17 +966,20 @@ function buyGen(id) {
   const g = GENERATORS.find(x => x.id === id);
   const owned = gen(id);
   let n = buyAmount === "max" ? genMaxBuy(g, owned, S.geld) : buyAmount;
-  if (n < 1) { toast("Zu wenig Kohle! 💸", "red"); return; }
+  if (n < 1) { toast("Zu wenig Kohle! 💸", "red"); sfx("err"); return; }
   const cost = genBulkCost(g, owned, n);
-  if (S.geld < cost) { toast("Zu wenig Kohle! 💸", "red"); return; }
+  if (S.geld < cost) { toast("Zu wenig Kohle! 💸", "red"); sfx("err"); return; }
   S.geld -= cost;
   S.generators[id] = owned + n;
   const newCnt = S.generators[id];
   if (Math.floor(newCnt / GEN_MILESTONE) > Math.floor(owned / GEN_MILESTONE)) {
     toast(`🎊 Meilenstein: ${g.name} produziert jetzt doppelt!`, "gold");
+    sfx("fanfare");
+    burstCenter(48);
     vibrate([40, 30, 40]);
   } else {
     toast(`${g.emoji} +${n} ${g.name}`, "gold");
+    sfx("buy");
     vibrate(30);
   }
   renderKolonne();
@@ -863,6 +1015,7 @@ function buyTalent(key) {
   S.respekt -= cost;
   S.talents[key] = lvl + 1;
   toast(`${t.emoji} Talent: ${t.name} auf Stufe ${lvl + 1}!`, "gold");
+  sfx("buy");
   vibrate(40);
   renderTalents();
   renderProfil();
@@ -880,6 +1033,8 @@ function checkAchievements(silent = false) {
       S.runGeld += a.reward;
       if (!silent) {
         toast(`🏆 Erfolg: ${a.name}! (+${fmtGeld(a.reward)})`, "gold");
+        sfx("quest");
+        burstCenter(24);
         vibrate([40, 30, 40]);
         $("badge-profil").classList.add("on");
       }
@@ -897,6 +1052,8 @@ function checkSeries(silent = false) {
       S.achTiers[ser.id] = t;
       if (!silent) {
         toast(`🏆 ${ser.icon} ${ser.name} ${roman(t)} – dauerhaft +1 % auf alles!`, "gold");
+        sfx("quest");
+        burstCenter(24);
         $("badge-profil").classList.add("on");
       }
     }
@@ -928,8 +1085,59 @@ function doPrestige() {
   S = Object.assign(defaultState(), keep);
   if (tal("start") > 0) S.geld = B.talents.startCapitalBase * Math.pow(B.talents.startCapitalGrowth, tal("start") - 1);
   toast(`⭐ Neuanfang! +${gain} Respekt – gib sie im Talentbaum aus (Skills-Tab).`, "gold");
+  sfx("fanfare");
+  burstCenter(80);
   checkAchievements();
   renderAll();
+  save();
+}
+
+/* ---------------- Glücksfund ---------------- */
+/* Variable-Ratio-Belohnung: taucht unvorhersehbar auf, verschwindet
+   nach kurzer Zeit. Belohnung skaliert mit dem aktuellen Einkommen. */
+
+function scheduleGift() {
+  const delay = (B.gift.minDelaySec + Math.random() * (B.gift.maxDelaySec - B.gift.minDelaySec)) * 1000;
+  setTimeout(spawnGift, delay);
+}
+
+function spawnGift() {
+  if (document.hidden || $("gift")) { scheduleGift(); return; }
+  const g = document.createElement("div");
+  g.id = "gift";
+  g.textContent = "🎁";
+  g.title = "Glücksfund!";
+  g.style.left = (10 + Math.random() * 70) + "vw";
+  g.style.top = (22 + Math.random() * 42) + "vh";
+  g.addEventListener("pointerdown", e => { e.preventDefault(); claimGift(e); });
+  document.body.appendChild(g);
+  setTimeout(() => { if (g.parentNode) g.remove(); }, B.gift.lifetimeSec * 1000);
+  setTimeout(scheduleGift, B.gift.lifetimeSec * 1000);
+}
+
+function claimGift(e) {
+  const g = $("gift");
+  if (!g) return;
+  g.remove();
+  const incomeSec = Math.max(kolonneIncome(), (bottlesPerMin() / 60) * sellPrice());
+  const r = Math.random();
+  if (r < 0.55) {
+    const geld = +Math.max(5, incomeSec * B.gift.geldSec).toFixed(2);
+    addGeld(geld);
+    toast(`🎁 Glücksfund: +${fmtGeld(geld)}!`, "gold");
+  } else if (r < 0.9) {
+    const bottles = Math.max(10, Math.round(bottlesPerMin() * (B.gift.bottleSec / 60)));
+    collectBottles(bottles);
+    toast(`🎁 Glücksfund: ${fmtNum(bottles)} Flaschen!`, "gold");
+  } else {
+    S.kurs = B.kurs.max;
+    S.kursHist.push(S.kurs);
+    renderKurs();
+    toast("🎁 Pfand-Hype! Der Kurs schießt aufs Maximum – jetzt verkaufen!", "gold");
+  }
+  sfx("crit");
+  burst(e.clientX || innerWidth / 2, e.clientY || innerHeight / 2, 40);
+  vibrate([40, 30, 40]);
   save();
 }
 
@@ -968,6 +1176,7 @@ function questProgress(type, amt) {
     q.done = true;
     addGeld(q.reward);
     toast(`🎁 Tagesaufgabe geschafft: +${fmtGeld(q.reward)}!`, "gold");
+    sfx("quest");
     vibrate([40, 30, 40]);
     renderQuests();
   }
@@ -1083,8 +1292,7 @@ function applyOffline() {
 let activeTab = "sammeln";
 
 function renderHeader() {
-  $("geld-val").textContent = fmtGeld(S.geld);
-  $("flaschen-val").textContent = fmtNum(S.flaschen) + "/" + fmtNum(capacity());
+  // Geld & Flaschen schreibt fxLoop (Roll-up-Animation)
   $("stat-respekt").style.display = S.respektEarned > 0 ? "flex" : "none";
   $("respekt-val").textContent = fmtNum(S.respekt);
   const need = xpNeeded(S.level);
@@ -1177,6 +1385,7 @@ function renderKurs() {
   el.className = "mono " + (S.kurs > old ? "up" : S.kurs < old ? "down" : "");
   el.dataset.v = S.kurs;
   $("kurs-trend").textContent = S.kurs > old ? "📈" : S.kurs < old ? "📉" : "➡️";
+  drawSparkline();
   renderSellPreview();
 }
 
@@ -1356,7 +1565,41 @@ function renderKolonne() {
   $("badge-kolonne").classList.toggle("on", affordable);
 }
 
+function renderAvatar() {
+  const icon = key => {
+    const a = AVATAR_ICONS[key];
+    return a[Math.min(S.items[key], a.length - 1)];
+  };
+  const tierColors = [[50, "#e3b341"], [25, "#1f6feb"], [10, "#2ea043"]];
+  let hood = "#6e7781";
+  for (const [lvl, c] of tierColors) if (S.level >= lvl) { hood = c; break; }
+  const stars = "⭐".repeat(Math.min(5, S.prestigeCount));
+  const dog = icon("hund"), radar = icon("radar"), scooter = icon("scooter");
+  $("avatar-box").innerHTML = `
+  <svg viewBox="0 0 260 150" role="img" aria-label="Dein Charakter">
+    <text x="16" y="112" font-size="46" opacity="0.35">${icon("lager")}</text>
+    ${dog ? `<text x="76" y="126" font-size="28">${dog}</text>` : ""}
+    <ellipse cx="132" cy="138" rx="36" ry="5" fill="rgba(0,0,0,0.35)"/>
+    <rect x="121" y="106" width="9" height="28" rx="4" fill="#24292f"/>
+    <rect x="134" y="106" width="9" height="28" rx="4" fill="#24292f"/>
+    <rect x="118" y="132" width="14" height="6" rx="3" fill="#0a0d12"/>
+    <rect x="133" y="132" width="14" height="6" rx="3" fill="#0a0d12"/>
+    <rect x="110" y="62" width="44" height="52" rx="13" fill="${hood}"/>
+    <circle cx="132" cy="47" r="16" fill="#e8b88a"/>
+    <rect x="115" y="28" width="34" height="12" rx="6" fill="#8b2635"/>
+    <circle cx="126" cy="47" r="2" fill="#24292f"/>
+    <circle cx="138" cy="47" r="2" fill="#24292f"/>
+    <path d="M126 55 q6 5 12 0" stroke="#24292f" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    ${radar ? `<text x="152" y="82" font-size="17">${radar}</text>` : ""}
+    <text x="172" y="124" font-size="34">${icon("beutel")}</text>
+    ${scooter ? `<text x="216" y="130" font-size="24">${scooter}</text>` : ""}
+    ${stars ? `<text x="132" y="16" font-size="12" text-anchor="middle">${stars}</text>` : ""}
+  </svg>`;
+  $("avatar-caption").textContent = `${title()} · Level ${S.level}`;
+}
+
 function renderProfil() {
+  renderAvatar();
   $("profil-title").textContent = title();
   const days = Math.max(1, Math.ceil((Date.now() - S.createdAt) / 86400000));
   const rows = [
@@ -1546,6 +1789,16 @@ function init() {
   checkDaily();
   renderAll();
 
+  // FX: Canvas dimensionieren, Roll-up-Startwerte, rAF-Loop
+  const cv = $("fx-canvas");
+  const sizeCanvas = () => { cv.width = innerWidth; cv.height = innerHeight; };
+  sizeCanvas();
+  window.addEventListener("resize", sizeCanvas);
+  dispGeld = S.geld;
+  dispFl = S.flaschen;
+  requestAnimationFrame(fxLoop);
+  scheduleGift();
+
   document.querySelectorAll(".tab-btn").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
   $("btn-sell").onclick = () => sellAll(false);
   $("mission-abort").onclick = abortMission;
@@ -1553,6 +1806,9 @@ function init() {
   $("btn-export").onclick = exportSave;
   $("btn-import").onclick = importSave;
   $("btn-reset").onclick = resetSave;
+  const soundLabel = () => $("btn-sound").textContent = S.sound ? "🔊 Sound an" : "🔇 Sound aus";
+  soundLabel();
+  $("btn-sound").onclick = () => { S.sound = !S.sound; soundLabel(); if (S.sound) sfx("coin"); save(); };
   $("modal-close").onclick = () => $("modal-backdrop").style.display = "none";
   document.querySelectorAll("#buy-toggle button").forEach(b => b.onclick = () => {
     buyAmount = b.dataset.n === "max" ? "max" : parseInt(b.dataset.n, 10);
@@ -1579,6 +1835,7 @@ function init() {
     cheat(fn) { fn(S); renderAll(); },
     collect(n) { collectBottles(n); renderAll(); },
     forceEvent() { if (S.mission) { S.mission.lastEvent = 0; missionEventTick(); } },
+    gift: spawnGift,
   };
 }
 
