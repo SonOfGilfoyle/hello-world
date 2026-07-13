@@ -372,10 +372,12 @@ const SAVE_KEY = "pfandlord_save_v1";
 
 function defaultState() {
   return {
-    version: 3,
+    version: 4,
     createdAt: Date.now(),
     lastSeen: Date.now(),
     lastGenTick: Date.now(),
+    onboarded: false,
+    tabs: { sammeln: true, betteln: false, kolonne: false, shop: false, skills: false, profil: false },
     geld: 0,
     flaschen: 0,
     energy: BALANCE.beg.energyMax,
@@ -1067,6 +1069,8 @@ function doPrestige() {
   if (S.level < 25 || gain <= 0) return;
   if (!confirm(`Wirklich neu anfangen?\n\nDu bekommst +${gain} Respekt-Punkte für den Talentbaum.\nLevel, Geld, Items, Skills und Kolonne werden zurückgesetzt.\nTalente, Erfolge und Streak bleiben.`)) return;
   const keep = {
+    onboarded: true,
+    tabs: S.tabs,
     respekt: S.respekt + gain,
     respektEarned: S.respektEarned + gain,
     prestigeCount: S.prestigeCount + 1,
@@ -1186,6 +1190,7 @@ function checkDaily() {
   const today = todayStr();
   if (!S.quests) genQuests();
   if (S.streak.last === today) return;
+  const firstEver = S.streak.best === 0;
   if (S.streak.last === yesterdayStr()) S.streak.count++;
   else S.streak.count = 1;
   S.streak.last = today;
@@ -1196,9 +1201,14 @@ function checkDaily() {
   const reward = +(B.daily.basePerStreakTag * S.streak.count * (1 + S.level / 10) * globalMult()
     + kolonneIncome() * B.daily.kolonneSec * (1 + B.daily.kolonneStreakBonus * S.streak.count)).toFixed(2);
   addGeld(reward);
-  showModal("🗓️ Täglicher Bonus",
-    `<b>Tag ${S.streak.count}</b> deiner Streak!<span class="big">+${fmtGeld(reward)}</span>` +
-    `Neue Tagesaufgaben sind da – und morgen wächst die Belohnung weiter.`);
+  if (firstEver) {
+    // Tag 1 direkt nach dem Onboarding: kein Modal-Gewitter, nur ein Gruß
+    toast(`🗓️ Willkommens-Bonus: +${fmtGeld(reward)} – komm morgen wieder, dann gibt's mehr!`, "gold");
+  } else {
+    showModal("🗓️ Täglicher Bonus",
+      `<b>Tag ${S.streak.count}</b> deiner Streak!<span class="big">+${fmtGeld(reward)}</span>` +
+      `Neue Tagesaufgaben sind da – und morgen wächst die Belohnung weiter.`);
+  }
   checkAchievements();
   renderQuests();
 }
@@ -1400,6 +1410,8 @@ function renderSellPreview() {
 
 function renderQuests() {
   const wrap = $("quest-list");
+  // Erst ab Level 2 – die erste Minute gehört dem Kern-Loop
+  $("quest-card").style.display = S.level >= 2 && S.quests ? "block" : "none";
   if (!S.quests) { wrap.innerHTML = ""; return; }
   wrap.innerHTML = S.quests.list.map(q => {
     const meta = QUEST_META[q.type];
@@ -1662,6 +1674,7 @@ function renderAchievements() {
 }
 
 function renderAll() {
+  renderTabbar();
   renderHeader();
   renderDistricts();
   renderMissionState();
@@ -1674,13 +1687,47 @@ function renderAll() {
   renderAchievements();
 }
 
-/* ---------------- Tabs ---------------- */
+/* ---------------- Tabs (progressive Freischaltung) ---------------- */
+
+/* Die UI wächst mit dem Spieler: Tabs existieren erst, wenn ihr System
+   relevant wird – jede Freischaltung ist ein kleiner Belohnungsmoment. */
+const TAB_UNLOCKS = [
+  { id: "profil",  cond: s => s.level >= 2,                  label: "👤 Profil" },
+  { id: "shop",    cond: s => s.totalGeld >= 5,              label: "🛒 Shop" },
+  { id: "skills",  cond: s => s.level >= 3,                  label: "📚 Skills" },
+  { id: "kolonne", cond: s => s.level >= KOLONNE_UNLOCK_LVL, label: "👥 Kolonne" },
+];
+
+function renderTabbar() {
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.style.display = S.tabs[b.dataset.tab] ? "flex" : "none";
+  });
+}
+
+function checkUnlocks() {
+  if (!S.onboarded) return;
+  for (const t of TAB_UNLOCKS) {
+    if (!S.tabs[t.id] && t.cond(S)) {
+      S.tabs[t.id] = true;
+      renderTabbar();
+      const btn = document.querySelector(`.tab-btn[data-tab="${t.id}"]`);
+      if (btn) btn.classList.add("tab-new");
+      toast(`🎉 Neuer Tab freigeschaltet: ${t.label}!`, "gold");
+      sfx("level");
+      burstCenter(28);
+      vibrate([40, 30, 40]);
+    }
+  }
+}
 
 function switchTab(name) {
   activeTab = name;
   document.querySelectorAll(".tab-panel").forEach(p => p.style.display = "none");
   $("tab-" + name).style.display = "block";
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.tab === name);
+    if (b.dataset.tab === name) b.classList.remove("tab-new");
+  });
   refreshActiveTab();
   if (name === "profil") $("badge-profil").classList.remove("on");
 }
@@ -1710,6 +1757,12 @@ function migrate(d) {
   if (d.version < 3) {
     d.version = 3;
     d.energy = BALANCE.beg.energyMax; // Bettel-Energie ist neu → volle Leiste
+  }
+  if (d.version < 4) {
+    d.version = 4;
+    // Bestandsspieler kennen das Spiel: kein Onboarding, alle Tabs offen
+    d.onboarded = true;
+    d.tabs = { sammeln: true, betteln: true, kolonne: true, shop: true, skills: true, profil: true };
   }
   return d;
 }
@@ -1765,9 +1818,178 @@ function resetSave() {
   if (!confirm("Letzte Chance: Spielstand endgültig löschen?")) return;
   localStorage.removeItem(SAVE_KEY);
   S = defaultState();
-  genQuests();
+  obBottles = 0;
+  switchTab("sammeln");
   renderAll();
-  toast("Spielstand gelöscht. Neues Spiel, neues Glück!");
+  startOnboarding();
+}
+
+/* ---------------- Onboarding: die ersten 90 Sekunden ---------------- */
+/* Kein Tutorial – eine Ouvertüre. Jede Kernhandlung wird einmal selbst
+   getan, kein Text länger als eine Zeile, und die UI entsteht Stück für
+   Stück als Belohnung. Bestandsspieler (onboarded=true) sehen nichts. */
+
+const OB_TOUR_SEC = 15;
+let obBottles = 0;
+
+function obClear() {
+  $("ob-stage").innerHTML = "";
+  $("ob-text").innerHTML = "";
+  $("ob-actions").innerHTML = "";
+}
+
+function obLine(txt, delaySec = 0) {
+  const d = document.createElement("div");
+  d.className = "ob-line";
+  d.style.animationDelay = delaySec + "s";
+  d.textContent = txt;
+  $("ob-text").appendChild(d);
+  return d;
+}
+
+function obBtn(label, fn, delaySec = 0) {
+  const b = document.createElement("button");
+  b.className = "btn btn-primary ob-btn";
+  b.style.animationDelay = delaySec + "s";
+  b.textContent = label;
+  b.onclick = fn;
+  $("ob-actions").appendChild(b);
+  return b;
+}
+
+function obCounter(html) {
+  $("ob-counter").innerHTML = html;
+  $("ob-counter").classList.remove("pop");
+  void $("ob-counter").offsetWidth;
+  $("ob-counter").classList.add("pop");
+}
+
+function startOnboarding() {
+  $("onboard").style.display = "flex";
+  $("ob-counter").innerHTML = "";
+  obClear();
+  obLine("Tag 1.", 0.3);
+  obLine("Du besitzt: nichts.", 1.5);
+  obLine("Außer Stil.", 2.7);
+  setTimeout(obSpawnBottle, 3900);
+}
+
+function obSpawnBottle() {
+  const stage = $("ob-stage");
+  const b = document.createElement("button");
+  b.className = "ob-bottle";
+  b.textContent = "🍾";
+  b.style.left = (12 + Math.random() * 64) + "%";
+  b.style.top = (15 + Math.random() * 55) + "%";
+  b.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    b.remove();
+    obBottles++;
+    S.flaschen++;
+    S.totalFlaschen++;
+    addXp(1);
+    sfx("tap");
+    vibrate(20);
+    particle("+1 🍾", e.clientX, e.clientY);
+    obCounter(`🍾 × ${obBottles}`);
+    if (obBottles === 1) {
+      $("ob-text").innerHTML = "";
+      obLine("Sauber. Pfand ist Geld, das auf der Straße liegt.");
+    }
+    if (obBottles < 5) setTimeout(obSpawnBottle, 350);
+    else setTimeout(obAutomat, 700);
+  });
+  stage.appendChild(b);
+  if (obBottles === 0) setTimeout(() => { if (stage.contains(b)) obLine("Tipp die Flasche an.", 0); }, 1800);
+}
+
+function obAutomat() {
+  obClear();
+  const a = document.createElement("div");
+  a.className = "ob-automat";
+  a.textContent = "♻️";
+  $("ob-stage").appendChild(a);
+  obLine("Da drüben: ein Automat.", 0.2);
+  obLine("Er frisst Flaschen und spuckt Geld. Bester Deal der Stadt.", 1.2);
+  obBtn("Verkaufen (5 🍾)", () => {
+    const value = sellAll(true);
+    sfx("coin");
+    burstCenter(24);
+    vibrate(30);
+    obCounter(`💶 +${fmtGeld(value)}`);
+    $("ob-text").innerHTML = "";
+    $("ob-actions").innerHTML = "";
+    obLine("Cha-Ching. Dein erstes eigenes Geld.");
+    setTimeout(obTour, 1600);
+  }, 2.0);
+}
+
+function obTour() {
+  obClear();
+  obLine("Flaschen einzeln antippen ist süß.", 0.2);
+  obLine("Profis gehen auf Tour.", 1.2);
+  obBtn("🚶 Erste Tour starten", () => {
+    obClear();
+    obLine("Du ziehst los. Beutel geschnappt, Würde geparkt.");
+    const wrap = document.createElement("div");
+    wrap.className = "progress-outer ob-progress";
+    wrap.innerHTML = `<div class="progress-inner" id="ob-bar"></div>`;
+    $("ob-stage").appendChild(wrap);
+    const start = Date.now();
+    const iv = setInterval(() => {
+      const pct = Math.min(100, ((Date.now() - start) / (OB_TOUR_SEC * 1000)) * 100);
+      $("ob-bar").style.width = pct + "%";
+      if (pct >= 100) { clearInterval(iv); obTourDone(); }
+    }, 100);
+    setTimeout(() => obLine("Du durchwühlst deinen ersten Mülleimer. Riecht nach Zukunft.", 0), 3500);
+    setTimeout(() => {
+      obLine("Wartezeit? Betteln geht immer:", 0);
+      const begEl = document.createElement("button");
+      begEl.className = "ob-beg";
+      begEl.textContent = "🤲";
+      begEl.addEventListener("pointerdown", e => { e.preventDefault(); S.tabs.betteln = true; beg(e); });
+      $("ob-stage").appendChild(begEl);
+    }, 6500);
+  }, 2.2);
+}
+
+function obTourDone() {
+  collectBottles(12, true);
+  sfx("fanfare");
+  burstCenter(40);
+  vibrate([40, 30, 40]);
+  obCounter("🍾 +12");
+  $("ob-text").innerHTML = "";
+  $("ob-actions").innerHTML = "";
+  obLine("Zwölf auf einen Streich. Nicht schlecht für Tag 1.");
+  obBtn("Und jetzt? ➜", obFinale, 1.2);
+}
+
+function obFinale() {
+  obClear();
+  obLine("Flaschen. Geld. Touren.", 0.3);
+  obLine("Der Rest ist Straße – und sie gehört bald dir.", 1.5);
+  obBtn("LOS GEHT'S 🍾", finishOnboarding, 2.5);
+}
+
+function finishOnboarding() {
+  S.onboarded = true;
+  S.tabs.betteln = true;
+  save();
+  const ob = $("onboard");
+  ob.classList.add("ob-out");
+  setTimeout(() => { ob.style.display = "none"; ob.classList.remove("ob-out"); }, 600);
+  renderAll();
+  renderTabbar();
+  document.querySelectorAll(".tab-btn").forEach((b, i) => {
+    if (b.style.display !== "none") {
+      b.classList.add("tab-pop");
+      b.style.animationDelay = (0.2 + i * 0.12) + "s";
+    }
+  });
+  sfx("level");
+  checkDaily();
+  scheduleGift();
 }
 
 /* ---------------- Game Loop ---------------- */
@@ -1779,6 +2001,7 @@ function tick() {
   missionEventTick();
   comboTick();
   genTick();
+  checkUnlocks();
 }
 
 let hiddenAt = 0;
@@ -1786,8 +2009,8 @@ let hiddenAt = 0;
 function init() {
   load();
   applyOffline();
-  checkDaily();
   renderAll();
+  renderTabbar();
 
   // FX: Canvas dimensionieren, Roll-up-Startwerte, rAF-Loop
   const cv = $("fx-canvas");
@@ -1797,7 +2020,9 @@ function init() {
   dispGeld = S.geld;
   dispFl = S.flaschen;
   requestAnimationFrame(fxLoop);
-  scheduleGift();
+
+  if (S.onboarded) { checkDaily(); scheduleGift(); }
+  else startOnboarding();
 
   document.querySelectorAll(".tab-btn").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
   $("btn-sell").onclick = () => sellAll(false);
@@ -1825,7 +2050,7 @@ function init() {
   window.addEventListener("beforeunload", save);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) { save(); hiddenAt = Date.now(); }
-    else if (Date.now() - hiddenAt > 60000) { load(); applyOffline(); checkDaily(); renderAll(); }
+    else if (Date.now() - hiddenAt > 60000) { load(); applyOffline(); if (S.onboarded) checkDaily(); renderAll(); }
   });
 
   // Debug-/Test-API (bewusst schlicht)

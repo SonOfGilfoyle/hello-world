@@ -438,6 +438,97 @@ body { display: flex; flex-direction: column; }
   .particle { display: none; }
 }
 
+/* ---- Onboarding ---- */
+#onboard {
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 50% 20%, #131a26, var(--bg) 70%);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 32px);
+  transition: opacity 0.6s ease;
+}
+#onboard.ob-out { opacity: 0; pointer-events: none; }
+#ob-counter {
+  min-height: 44px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+#ob-counter.pop { animation: ob-pop 0.3s ease; }
+@keyframes ob-pop { 40% { transform: scale(1.25); } }
+#ob-stage { position: relative; flex: 1; min-height: 200px; }
+#ob-text { min-height: 90px; text-align: center; }
+.ob-line {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.6;
+  opacity: 0;
+  animation: ob-line-in 0.7s ease forwards;
+  text-wrap: balance;
+}
+@keyframes ob-line-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+#ob-actions { min-height: 64px; display: flex; justify-content: center; padding-top: 12px; }
+.ob-btn {
+  max-width: 300px;
+  opacity: 0;
+  animation: ob-line-in 0.6s ease forwards;
+}
+.ob-bottle {
+  position: absolute;
+  font-size: 3.4rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  filter: drop-shadow(0 0 14px rgba(63, 185, 80, 0.5));
+  animation: ob-bottle-in 0.4s ease, gift-wiggle 1.4s ease-in-out 0.4s infinite;
+  touch-action: manipulation;
+}
+@keyframes ob-bottle-in { from { transform: scale(0) rotate(40deg); } 70% { transform: scale(1.2); } }
+.ob-automat {
+  position: absolute;
+  left: 50%; top: 45%;
+  transform: translate(-50%, -50%);
+  font-size: 5rem;
+  animation: ob-bottle-in 0.5s ease;
+}
+.ob-progress { position: absolute; left: 10%; right: 10%; top: 45%; }
+.ob-beg {
+  position: absolute;
+  left: 50%; top: 62%;
+  transform: translateX(-50%);
+  font-size: 3rem;
+  background: none;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  width: 90px; height: 90px;
+  cursor: pointer;
+  animation: ob-bottle-in 0.4s ease;
+  touch-action: manipulation;
+}
+.ob-beg:active { transform: translateX(-50%) scale(0.92); }
+
+.tab-btn.tab-new span { animation: gift-wiggle 1s ease-in-out infinite; }
+.tab-btn.tab-new::after {
+  content: "NEU";
+  position: absolute;
+  top: 4px; right: calc(50% - 30px);
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: var(--bg);
+  background: var(--gold);
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+.tab-btn.tab-pop { animation: ob-bottle-in 0.45s ease backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-bottle, .ob-beg, .tab-btn.tab-new span { animation: none; }
+  .ob-line, .ob-btn { animation-duration: 0.01s; }
+}
+
 /* ---- Modal ---- */
 #modal-backdrop {
   position: fixed; inset: 0;
