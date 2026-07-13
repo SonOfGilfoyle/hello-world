@@ -1913,11 +1913,11 @@ function obAutomat() {
   obLine("Da drüben: ein Automat.", 0.2);
   obLine("Er frisst Flaschen und spuckt Geld. Bester Deal der Stadt.", 1.2);
   obBtn("Verkaufen (5 🍾)", () => {
-    const value = sellAll(true);
+    sellAll(true);
     sfx("coin");
     burstCenter(24);
     vibrate(30);
-    obCounter(`💶 +${fmtGeld(value)}`);
+    obCounter(`💶 ${fmtGeld(S.geld)}`);
     $("ob-text").innerHTML = "";
     $("ob-actions").innerHTML = "";
     obLine("Cha-Ching. Dein erstes eigenes Geld.");
@@ -1951,8 +1951,8 @@ function obTour() {
       begEl.addEventListener("pointerdown", e => {
         e.preventDefault();
         S.tabs.betteln = true;
-        const g = beg(e);
-        if (g) obCounter(`💶 +${fmtGeld(g)}`);
+        // Partikel zeigt das Plus, der Zähler oben den Kontostand
+        if (beg(e)) obCounter(`💶 ${fmtGeld(S.geld)}`);
       });
       $("ob-stage").appendChild(begEl);
     }, 6500);
