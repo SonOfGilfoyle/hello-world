@@ -442,7 +442,8 @@ body { display: flex; flex-direction: column; }
 #onboard {
   position: fixed; inset: 0;
   background: radial-gradient(circle at 50% 20%, #131a26, var(--bg) 70%);
-  z-index: 150;
+  /* Unter Partikeln (90), Konfetti (95) und Toasts (100), aber über der UI */
+  z-index: 80;
   display: flex;
   flex-direction: column;
   padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px calc(env(safe-area-inset-bottom, 0px) + 32px);

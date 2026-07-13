@@ -909,6 +909,7 @@ function beg(ev) {
   particle((crit ? "💥 " : "") + "+" + fmtGeld(gain), x || innerWidth / 2, y || innerHeight / 2);
   $("beg-total").textContent = fmtGeld(S.begToday);
   checkAchievements();
+  return gain;
 }
 
 function comboTick() {
@@ -1947,7 +1948,12 @@ function obTour() {
       const begEl = document.createElement("button");
       begEl.className = "ob-beg";
       begEl.textContent = "🤲";
-      begEl.addEventListener("pointerdown", e => { e.preventDefault(); S.tabs.betteln = true; beg(e); });
+      begEl.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        S.tabs.betteln = true;
+        const g = beg(e);
+        if (g) obCounter(`💶 +${fmtGeld(g)}`);
+      });
       $("ob-stage").appendChild(begEl);
     }, 6500);
   }, 2.2);
