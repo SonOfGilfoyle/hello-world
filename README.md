@@ -40,6 +40,10 @@ Der Spielstand liegt im `localStorage` deines Browsers.
 
 ## 🚀 Starten
 
+**Online spielen:** https://sonofgilfoyle.github.io/hello-world/
+(GitHub Pages served diesen Branch – jeder Push deployed automatisch,
+der Spielstand im Browser bleibt dabei erhalten.)
+
 **Direkt im Browser:** einfach `index.html` öffnen.
 
 **Mit Python:**
